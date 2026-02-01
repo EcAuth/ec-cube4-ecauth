@@ -1,0 +1,8 @@
+/vendor/
+/node_modules/
+/.php-cs-fixer.cache
+/composer.lock
+/.phpunit.result.cache
+/test-results/
+/playwright-report/
+/.env
