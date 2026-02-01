@@ -1,0 +1,66 @@
+name: Playwright E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Create .env file
+        run: |
+          cat <<'EOF' > .env
+          ECAUTH_BASE_URL=${{ secrets.ECAUTH_BASE_URL }}
+          ECAUTH_CLIENT_ID=${{ secrets.ECAUTH_CLIENT_ID }}
+          ECAUTH_CLIENT_SECRET=${{ secrets.ECAUTH_CLIENT_SECRET }}
+          EOF
+
+      - name: Start Docker environment
+        run: docker compose up -d --build --wait
+
+      - name: Wait for EC-CUBE to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sk https://localhost:4430/admin/login > /dev/null 2>&1; then
+              echo "EC-CUBE is ready"
+              break
+            fi
+            echo "Waiting for EC-CUBE... ($i/30)"
+            sleep 5
+          done
+
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=list
+        env:
+          BASE_URL: https://localhost:4430
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+      - name: Stop Docker environment
+        if: always()
+        run: docker compose down

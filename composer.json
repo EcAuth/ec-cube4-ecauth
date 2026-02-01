@@ -1,0 +1,19 @@
+{
+  "name": "ecauth/ec-cube4-ecauth",
+  "version": "1.0.0",
+  "description": "EC-CUBE 4.3系向け EcAuth 認証プラグイン",
+  "type": "eccube-plugin",
+  "license": "LGPL-2.1-or-later",
+  "extra": {
+    "code": "EcAuthLogin43",
+    "id": 999999
+  },
+  "require": {
+    "ec-cube/plugin-installer": "^2.0"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.64",
+    "phpstan/phpstan": "^1.10",
+    "rector/rector": "^1.0"
+  }
+}

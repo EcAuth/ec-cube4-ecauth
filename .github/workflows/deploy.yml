@@ -1,0 +1,43 @@
+name: Packaging for EC-CUBE Plugin
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Packaging
+        working-directory: ../
+        run: |
+          rm -rf $GITHUB_WORKSPACE/.github
+          rm -rf $GITHUB_WORKSPACE/tests
+          rm -rf $GITHUB_WORKSPACE/node_modules
+          rm -f $GITHUB_WORKSPACE/Dockerfile
+          rm -f $GITHUB_WORKSPACE/docker-compose.yml
+          rm -f $GITHUB_WORKSPACE/docker-compose.override.yml
+          rm -f $GITHUB_WORKSPACE/docker-entrypoint.sh
+          rm -f $GITHUB_WORKSPACE/package.json
+          rm -f $GITHUB_WORKSPACE/package-lock.json
+          rm -f $GITHUB_WORKSPACE/yarn.lock
+          rm -f $GITHUB_WORKSPACE/playwright.config.ts
+          rm -f $GITHUB_WORKSPACE/phpstan.neon.dist
+          rm -f $GITHUB_WORKSPACE/rector.php
+          rm -f $GITHUB_WORKSPACE/.php-cs-fixer.dist.php
+          rm -f $GITHUB_WORKSPACE/.env.tpl
+          rm -f $GITHUB_WORKSPACE/CLAUDE.md
+          find $GITHUB_WORKSPACE -name "dummy" -delete
+          find $GITHUB_WORKSPACE -name ".git*" -and ! -name ".gitkeep" -print0 | xargs -0 rm -rf
+          chmod -R o+w $GITHUB_WORKSPACE
+          cd $GITHUB_WORKSPACE
+          tar cvzf ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz ./*
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
