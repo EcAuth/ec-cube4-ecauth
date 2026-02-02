@@ -1,4 +1,4 @@
-<script src="{{ asset('assets/js/webauthn.js', 'plugin') }}"></script>
+<script src="{{ asset('EcAuthLogin43/assets/js/webauthn.js', 'plugin') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // HTTPS かつ WebAuthn 対応時のみ表示
@@ -26,9 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ボタンを追加
     submitButton.parentNode.insertBefore(passkeyBtn, submitButton.nextSibling);
 
-    // CSRF トークン取得
-    var csrfTokenInput = loginForm.querySelector('input[name="_csrf_token"]');
-    var csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+    // CSRF トークン取得（ecauth_passkey ID で生成）
+    var csrfToken = '{{ csrf_token("ecauth_passkey") }}';
 
     passkeyBtn.addEventListener('click', function() {
         passkeyBtn.disabled = true;
