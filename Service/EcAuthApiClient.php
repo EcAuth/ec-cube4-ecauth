@@ -161,11 +161,12 @@ class EcAuthApiClient
      */
     public function exchangeToken(string $code, string $redirectUri): array
     {
-        return $this->postWithSecret('/token', [
+        return $this->postForm('/token', [
             'grant_type' => 'authorization_code',
             'code' => $code,
             'redirect_uri' => $redirectUri,
             'client_id' => $this->getClientId(),
+            'client_secret' => $this->getClientSecret(),
         ]);
     }
 
@@ -206,6 +207,51 @@ class EcAuthApiClient
         $body['client_secret'] = $this->getClientSecret();
 
         return $this->request('POST', $path, $body);
+    }
+
+    /**
+     * application/x-www-form-urlencoded で POST リクエストを送信する。
+     * OAuth2 /token エンドポイント用。
+     */
+    private function postForm(string $path, array $params): array
+    {
+        $url = $this->getBaseUrl().$path;
+        $client = new Client();
+
+        try {
+            $response = $client->request('POST', $url, [
+                'form_params' => $params,
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+                'http_errors' => false,
+            ]);
+            $statusCode = $response->getStatusCode();
+            $content = json_decode($response->getBody()->getContents(), true) ?? [];
+
+            if ($statusCode >= 400) {
+                $this->logger->error('EcAuth API error', [
+                    'status' => $statusCode,
+                    'path' => $path,
+                    'response' => $content,
+                ]);
+            }
+
+            return [
+                'status' => $statusCode,
+                'data' => $content,
+            ];
+        } catch (\Exception $e) {
+            $this->logger->error('EcAuth API request failed', [
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => 500,
+                'data' => ['error' => $e->getMessage()],
+            ];
+        }
     }
 
     /**
