@@ -94,7 +94,8 @@ var EcAuthWebAuthn = (function() {
                         clientDataJSON: base64UrlEncode(assertion.response.clientDataJSON),
                         signature: base64UrlEncode(assertion.response.signature)
                     },
-                    type: assertion.type
+                    type: assertion.type,
+                    clientExtensionResults: assertion.getClientExtensionResults()
                 }
             };
 
@@ -184,15 +185,22 @@ var EcAuthWebAuthn = (function() {
         })
         .then(function(credential) {
             // 4. 登録結果をサーバーに送信
+            var transports = [];
+            if (credential.response.getTransports) {
+                transports = credential.response.getTransports();
+            }
+
             var credentialData = {
                 response: {
                     id: credential.id,
                     rawId: base64UrlEncode(credential.rawId),
                     response: {
                         attestationObject: base64UrlEncode(credential.response.attestationObject),
-                        clientDataJSON: base64UrlEncode(credential.response.clientDataJSON)
+                        clientDataJSON: base64UrlEncode(credential.response.clientDataJSON),
+                        transports: transports
                     },
-                    type: credential.type
+                    type: credential.type,
+                    clientExtensionResults: credential.getClientExtensionResults()
                 }
             };
 

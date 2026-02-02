@@ -49,10 +49,14 @@ class PasskeyAuthController extends AbstractController
         }
 
         // session_id をサーバーサイドセッションに保存
+        $data = $result['data'];
         $session = $request->getSession();
-        $session->set('ecauth_passkey_session_id', $result['data']['session_id'] ?? null);
+        $session->set('ecauth_passkey_session_id', $data['session_id'] ?? null);
 
-        return $this->json($result['data']);
+        // EcAuth API は { session_id, options: {...} } を返すので、options をフラット化して返す
+        $options = $data['options'] ?? [];
+
+        return $this->json($options);
     }
 
     /**
@@ -70,6 +74,8 @@ class PasskeyAuthController extends AbstractController
         if (!is_array($data) || !isset($data['response'])) {
             return $this->json(['error' => 'Invalid request body'], 400);
         }
+
+        $this->fixWebAuthnEmptyObjects($data['response']);
 
         $session = $request->getSession();
         $sessionId = $session->get('ecauth_passkey_session_id');
@@ -129,10 +135,14 @@ class PasskeyAuthController extends AbstractController
         }
 
         // session_id をサーバーサイドセッションに保存
+        $data = $result['data'];
         $session = $request->getSession();
-        $session->set('ecauth_register_session_id', $result['data']['session_id'] ?? null);
+        $session->set('ecauth_register_session_id', $data['session_id'] ?? null);
 
-        return $this->json($result['data']);
+        // EcAuth API は { session_id, options: {...} } を返すので、options をフラット化して返す
+        $options = $data['options'] ?? [];
+
+        return $this->json($options);
     }
 
     /**
@@ -151,6 +161,8 @@ class PasskeyAuthController extends AbstractController
             return $this->json(['error' => 'Invalid request body'], 400);
         }
 
+        $this->fixWebAuthnEmptyObjects($data['response']);
+
         $session = $request->getSession();
         $sessionId = $session->get('ecauth_register_session_id');
         $session->remove('ecauth_register_session_id');
@@ -168,5 +180,20 @@ class PasskeyAuthController extends AbstractController
         }
 
         return $this->json($result['data']);
+    }
+
+    /**
+     * WebAuthn レスポンスの空オブジェクトを修正する。
+     *
+     * json_decode($str, true) は JSON の空オブジェクト {} を PHP の空配列 [] に変換する。
+     * json_encode で再エンコードすると [] (JSON 配列) になり、
+     * Fido2.NetLib のデシリアライズが失敗する。
+     * clientExtensionResults は常にオブジェクトであるため、stdClass に変換する。
+     */
+    private function fixWebAuthnEmptyObjects(array &$response): void
+    {
+        if (array_key_exists('clientExtensionResults', $response) && is_array($response['clientExtensionResults']) && empty($response['clientExtensionResults'])) {
+            $response['clientExtensionResults'] = new \stdClass();
+        }
     }
 }
