@@ -2,9 +2,9 @@
 
 namespace Plugin\EcAuthLogin43\Service;
 
+use GuzzleHttp\Client;
 use Plugin\EcAuthLogin43\Repository\ConfigRepository;
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class EcAuthApiClient
 {
@@ -14,22 +14,15 @@ class EcAuthApiClient
     private $configRepository;
 
     /**
-     * @var HttpClientInterface
-     */
-    private $httpClient;
-
-    /**
      * @var LoggerInterface
      */
     private $logger;
 
     public function __construct(
         ConfigRepository $configRepository,
-        HttpClientInterface $httpClient,
         LoggerInterface $logger
     ) {
         $this->configRepository = $configRepository;
-        $this->httpClient = $httpClient;
         $this->logger = $logger;
     }
 
@@ -221,12 +214,14 @@ class EcAuthApiClient
     private function request(string $method, string $path, array $body = [], array $headers = []): array
     {
         $url = $this->getBaseUrl().$path;
+        $client = new Client();
 
         $options = [
             'headers' => array_merge([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ], $headers),
+            'http_errors' => false,
         ];
 
         if (!empty($body)) {
@@ -234,9 +229,9 @@ class EcAuthApiClient
         }
 
         try {
-            $response = $this->httpClient->request($method, $url, $options);
+            $response = $client->request($method, $url, $options);
             $statusCode = $response->getStatusCode();
-            $content = $response->toArray(false);
+            $content = json_decode($response->getBody()->getContents(), true) ?? [];
 
             if ($statusCode >= 400) {
                 $this->logger->error('EcAuth API error', [
