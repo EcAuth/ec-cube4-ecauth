@@ -11,7 +11,7 @@ services:
     build: .
     ports:
       - "8080:80"
-      - "4430:443"
+      - "8081:443"
     environment:
       APP_ENV: dev
       DATABASE_URL: "postgresql://eccube:password@postgres:5432/eccube_db"

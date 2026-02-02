@@ -43,5 +43,12 @@ else
     echo "EcAuthLogin43 plugin already installed."
 fi
 
+# プラグインアセットのシンボリックリンクを作成
+if [ -d /var/www/html/app/Plugin/EcAuthLogin43/Resource/assets ] && [ ! -L /var/www/html/html/plugin/EcAuthLogin43/assets ]; then
+    mkdir -p /var/www/html/html/plugin/EcAuthLogin43
+    ln -sfn /var/www/html/app/Plugin/EcAuthLogin43/Resource/assets /var/www/html/html/plugin/EcAuthLogin43/assets
+    echo "Plugin assets symlinked."
+fi
+
 # Apache 起動
 exec "$@"
