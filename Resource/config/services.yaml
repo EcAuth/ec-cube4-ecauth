@@ -1,7 +1,7 @@
 services:
     Plugin\EcAuthLogin43\:
         resource: '../../*'
-        exclude: '../../{Entity,Resource,Tests}'
+        exclude: '../../{Entity,Resource,Tests,tests}'
         autowire: true
         autoconfigure: true
 
