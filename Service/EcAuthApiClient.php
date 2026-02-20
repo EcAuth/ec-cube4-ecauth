@@ -20,7 +20,7 @@ class EcAuthApiClient
 
     public function __construct(
         ConfigRepository $configRepository,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ) {
         $this->configRepository = $configRepository;
         $this->logger = $logger;
@@ -29,10 +29,7 @@ class EcAuthApiClient
     /**
      * パスキー認証オプションを取得する。
      *
-     * @param string $rpId
-     * @param string|null $b2bSubject
      *
-     * @return array
      */
     public function authenticateOptions(string $rpId, ?string $b2bSubject = null): array
     {
@@ -50,12 +47,8 @@ class EcAuthApiClient
     /**
      * パスキー認証を検証する。
      *
-     * @param string $sessionId
-     * @param string $redirectUri
-     * @param string|null $state
      * @param array $response WebAuthn assertion response
      *
-     * @return array
      */
     public function authenticateVerify(string $sessionId, string $redirectUri, ?string $state, array $response): array
     {
@@ -75,13 +68,7 @@ class EcAuthApiClient
     /**
      * パスキー登録オプションを取得する。
      *
-     * @param string $rpId
-     * @param string $b2bSubject
-     * @param string $externalId
-     * @param string|null $displayName
-     * @param string|null $deviceName
      *
-     * @return array
      */
     public function registerOptions(string $rpId, string $b2bSubject, string $externalId, ?string $displayName = null, ?string $deviceName = null): array
     {
@@ -104,11 +91,8 @@ class EcAuthApiClient
     /**
      * パスキー登録を完了する。
      *
-     * @param string $sessionId
      * @param array $response WebAuthn attestation response
-     * @param string|null $deviceName
      *
-     * @return array
      */
     public function registerVerify(string $sessionId, array $response, ?string $deviceName = null): array
     {
@@ -127,9 +111,7 @@ class EcAuthApiClient
     /**
      * 登録済みパスキー一覧を取得する。
      *
-     * @param string $accessToken
      *
-     * @return array
      */
     public function listPasskeys(string $accessToken): array
     {
@@ -141,10 +123,7 @@ class EcAuthApiClient
     /**
      * パスキーを削除する。
      *
-     * @param string $accessToken
-     * @param string $credentialId
      *
-     * @return array
      */
     public function deletePasskey(string $accessToken, string $credentialId): array
     {
@@ -156,10 +135,7 @@ class EcAuthApiClient
     /**
      * 認可コードをトークンに交換する。
      *
-     * @param string $code
-     * @param string $redirectUri
      *
-     * @return array
      */
     public function exchangeToken(string $code, string $redirectUri): array
     {
@@ -292,7 +268,7 @@ class EcAuthApiClient
             'timeout' => 30,
         ];
 
-        if (!empty($body)) {
+        if ($body !== []) {
             $options['json'] = $body;
         }
 

@@ -57,7 +57,7 @@ class PasskeyAuthService
         EcAuthApiClient $apiClient,
         TokenStorageInterface $tokenStorage,
         UserPasswordHasherInterface $passwordHasher,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ) {
         $this->entityManager = $entityManager;
         $this->memberRepository = $memberRepository;
@@ -175,9 +175,7 @@ class PasskeyAuthService
      * パスワードによる本人確認を行う。
      *
      * @param Member $Member
-     * @param string $password
      *
-     * @return bool
      */
     public function verifyPassword(Member $Member, string $password): bool
     {
@@ -188,8 +186,6 @@ class PasskeyAuthService
      * Config の rp_id またはリクエストホスト名を返す。
      *
      * @param Request $request
-     *
-     * @return string
      */
     public function getRpId(Request $request): string
     {

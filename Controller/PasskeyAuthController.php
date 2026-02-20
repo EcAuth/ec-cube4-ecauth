@@ -24,7 +24,7 @@ class PasskeyAuthController extends AbstractController
 
     public function __construct(
         EcAuthApiClient $apiClient,
-        PasskeyAuthService $passkeyAuthService
+        PasskeyAuthService $passkeyAuthService,
     ) {
         $this->apiClient = $apiClient;
         $this->passkeyAuthService = $passkeyAuthService;
@@ -99,7 +99,7 @@ class PasskeyAuthController extends AbstractController
             $sessionId,
             $redirectUri,
             $state,
-            $data['response']
+            $data['response'],
         );
 
         if ($result['status'] !== 200) {
