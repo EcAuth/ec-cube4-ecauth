@@ -10,7 +10,7 @@ export default defineConfig({
   retries: 1,
   reporter: 'list',
   use: {
-    baseURL: process.env.BASE_URL || 'https://localhost:4430',
+    baseURL: process.env.BASE_URL || 'https://localhost:8081',
     ignoreHTTPSErrors: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

@@ -39,7 +39,7 @@ jobs:
         run: |
           ready=false
           for i in $(seq 1 30); do
-            if curl -sk https://localhost:4430/admin/login > /dev/null 2>&1; then
+            if curl -sk https://localhost:8081/admin/login > /dev/null 2>&1; then
               echo "EC-CUBE is ready"
               ready=true
               break
@@ -55,7 +55,7 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test --reporter=list
         env:
-          BASE_URL: https://localhost:4430
+          BASE_URL: https://localhost:8081
 
       - name: Upload test results
         if: failure()
