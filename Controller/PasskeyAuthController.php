@@ -128,7 +128,11 @@ class PasskeyAuthController extends AbstractController
         $displayName = $data['display_name'] ?? null;
         $deviceName = $data['device_name'] ?? null;
 
-        $result = $this->apiClient->registerOptions($rpId, $b2bSubject, $displayName, $deviceName);
+        /** @var \Eccube\Entity\Member $Member */
+        $Member = $this->getUser();
+        $externalId = $Member->getLoginId();
+
+        $result = $this->apiClient->registerOptions($rpId, $b2bSubject, $externalId, $displayName, $deviceName);
 
         if ($result['status'] !== 200) {
             return $this->json(['error' => 'Failed to get registration options'], $result['status']);

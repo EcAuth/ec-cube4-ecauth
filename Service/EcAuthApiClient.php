@@ -77,17 +77,19 @@ class EcAuthApiClient
      *
      * @param string $rpId
      * @param string $b2bSubject
+     * @param string $externalId
      * @param string|null $displayName
      * @param string|null $deviceName
      *
      * @return array
      */
-    public function registerOptions(string $rpId, string $b2bSubject, ?string $displayName = null, ?string $deviceName = null): array
+    public function registerOptions(string $rpId, string $b2bSubject, string $externalId, ?string $displayName = null, ?string $deviceName = null): array
     {
         $body = [
             'client_id' => $this->getClientId(),
             'rp_id' => $rpId,
             'b2b_subject' => $b2bSubject,
+            'external_id' => $externalId,
         ];
         if ($displayName !== null) {
             $body['display_name'] = $displayName;
