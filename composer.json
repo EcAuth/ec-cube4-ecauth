@@ -15,5 +15,10 @@
     "friendsofphp/php-cs-fixer": "^3.64",
     "phpstan/phpstan": "^1.10",
     "rector/rector": "^1.0"
+  },
+  "config": {
+    "allow-plugins": {
+      "ec-cube/plugin-installer": true
+    }
   }
 }
