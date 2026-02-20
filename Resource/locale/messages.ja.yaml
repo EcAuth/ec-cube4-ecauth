@@ -27,6 +27,7 @@ ecauth_login43.admin.passkey.last_used_at: 最終使用日時
 ecauth_login43.admin.passkey.delete: 削除
 ecauth_login43.admin.passkey.delete.confirm: このパスキーを削除してよろしいですか？
 ecauth_login43.admin.passkey.delete.success: パスキーを削除しました。
+ecauth_login43.admin.passkey.delete.error: パスキーの削除に失敗しました。
 ecauth_login43.admin.passkey.add: パスキーを追加
 ecauth_login43.admin.passkey.empty: 登録済みパスキーはありません。
 ecauth_login43.admin.passkey.verify_password: パスワード確認

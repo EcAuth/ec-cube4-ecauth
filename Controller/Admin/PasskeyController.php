@@ -82,7 +82,7 @@ class PasskeyController extends AbstractController
         if ($result['status'] === 200 || $result['status'] === 204) {
             $this->addSuccess('ecauth_login43.admin.passkey.delete.success', 'admin');
         } else {
-            $this->addError('ecauth_login43.admin.passkey.register.error', 'admin');
+            $this->addError('ecauth_login43.admin.passkey.delete.error', 'admin');
         }
 
         return $this->redirectToRoute('ecauth_login43_admin_passkey');
