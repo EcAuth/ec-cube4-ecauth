@@ -50,8 +50,12 @@ class PasskeyAuthController extends AbstractController
 
         // session_id をサーバーサイドセッションに保存
         $data = $result['data'];
+        $sessionId = $data['session_id'] ?? null;
+        if ($sessionId === null) {
+            return $this->json(['error' => 'Invalid API response: missing session_id'], 502);
+        }
         $session = $request->getSession();
-        $session->set('ecauth_passkey_session_id', $data['session_id'] ?? null);
+        $session->set('ecauth_passkey_session_id', $sessionId);
 
         // EcAuth API は { session_id, options: {...} } を返すので、options をフラット化して返す
         $options = $data['options'] ?? [];
@@ -71,7 +75,7 @@ class PasskeyAuthController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        if (!is_array($data) || !isset($data['response'])) {
+        if (!is_array($data) || !isset($data['response']) || !is_array($data['response'])) {
             return $this->json(['error' => 'Invalid request body'], 400);
         }
 
@@ -140,8 +144,12 @@ class PasskeyAuthController extends AbstractController
 
         // session_id をサーバーサイドセッションに保存
         $data = $result['data'];
+        $sessionId = $data['session_id'] ?? null;
+        if ($sessionId === null) {
+            return $this->json(['error' => 'Invalid API response: missing session_id'], 502);
+        }
         $session = $request->getSession();
-        $session->set('ecauth_register_session_id', $data['session_id'] ?? null);
+        $session->set('ecauth_register_session_id', $sessionId);
 
         // EcAuth API は { session_id, options: {...} } を返すので、options をフラット化して返す
         $options = $data['options'] ?? [];

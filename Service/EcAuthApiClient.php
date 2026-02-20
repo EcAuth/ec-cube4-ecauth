@@ -217,7 +217,16 @@ class EcAuthApiClient
      */
     private function postForm(string $path, array $params): array
     {
-        $url = $this->getBaseUrl().$path;
+        $baseUrl = $this->getBaseUrl();
+        if ($baseUrl === '') {
+            $this->logger->error('EcAuth Base URL is not configured');
+
+            return [
+                'status' => 500,
+                'data' => ['error' => 'EcAuth Base URL is not configured'],
+            ];
+        }
+        $url = $baseUrl.$path;
         $client = new Client();
 
         try {
@@ -227,6 +236,7 @@ class EcAuthApiClient
                     'Accept' => 'application/json',
                 ],
                 'http_errors' => false,
+                'timeout' => 30,
             ]);
             $statusCode = $response->getStatusCode();
             $content = json_decode($response->getBody()->getContents(), true) ?? [];
@@ -261,7 +271,16 @@ class EcAuthApiClient
      */
     private function request(string $method, string $path, array $body = [], array $headers = []): array
     {
-        $url = $this->getBaseUrl().$path;
+        $baseUrl = $this->getBaseUrl();
+        if ($baseUrl === '') {
+            $this->logger->error('EcAuth Base URL is not configured');
+
+            return [
+                'status' => 500,
+                'data' => ['error' => 'EcAuth Base URL is not configured'],
+            ];
+        }
+        $url = $baseUrl.$path;
         $client = new Client();
 
         $options = [
@@ -270,6 +289,7 @@ class EcAuthApiClient
                 'Accept' => 'application/json',
             ], $headers),
             'http_errors' => false,
+            'timeout' => 30,
         ];
 
         if (!empty($body)) {
