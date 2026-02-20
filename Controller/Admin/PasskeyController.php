@@ -100,6 +100,9 @@ class PasskeyController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
+        if (!is_array($data)) {
+            return $this->json(['error' => 'Invalid request body'], 400);
+        }
         $password = $data['password'] ?? '';
 
         if ($password === '') {
