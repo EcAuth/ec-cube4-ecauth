@@ -235,7 +235,7 @@ class EcAuthApiClient
                 $this->logger->error('EcAuth API error', [
                     'status' => $statusCode,
                     'path' => $path,
-                    'response' => $content,
+                    'response' => $this->redactSensitiveFields($content),
                 ]);
             }
 
@@ -285,7 +285,7 @@ class EcAuthApiClient
                 $this->logger->error('EcAuth API error', [
                     'status' => $statusCode,
                     'path' => $path,
-                    'response' => $content,
+                    'response' => $this->redactSensitiveFields($content),
                 ]);
             }
 
@@ -304,5 +304,19 @@ class EcAuthApiClient
                 'data' => ['error' => $e->getMessage()],
             ];
         }
+    }
+
+    /**
+     * ログ出力用にセンシティブなフィールドをマスクする。
+     */
+    private function redactSensitiveFields(array $content): array
+    {
+        foreach (['access_token', 'id_token', 'refresh_token', 'client_secret'] as $key) {
+            if (isset($content[$key])) {
+                $content[$key] = '[REDACTED]';
+            }
+        }
+
+        return $content;
     }
 }
