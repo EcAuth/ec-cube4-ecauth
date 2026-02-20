@@ -1,5 +1,7 @@
 #!/bin/bash
-set -e
+set -eo pipefail
+
+cd "${APACHE_DOCUMENT_ROOT:-/var/www/html}"
 
 # ベースイメージのエントリポイント（composer install, DB初期化）を実行
 # ただし Apache 起動は行わない（後でプラグインインストール後に起動）
@@ -32,7 +34,8 @@ bin/console doctrine:query:sql 'select * from dtb_base_info' > /dev/null 2>&1 ||
 echo "PassEnv APP_ENV APP_DEBUG TRUSTED_PROXIES TRUSTED_HOSTS" > /etc/apache2/conf-enabled/eccube_env.conf
 
 # プラグインがまだインストールされていなければインストール
-if ! bin/console eccube:plugin:list 2>/dev/null | grep -q EcAuthLogin43; then
+plugin_list=$(bin/console eccube:plugin:list 2>/dev/null || true)
+if ! echo "$plugin_list" | grep -q EcAuthLogin43; then
     echo "Installing EcAuthLogin43 plugin..."
     bin/console eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin
     bin/console eccube:plugin:enable --code=EcAuthLogin43
