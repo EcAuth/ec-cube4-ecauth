@@ -37,14 +37,20 @@ jobs:
 
       - name: Wait for EC-CUBE to be ready
         run: |
+          ready=false
           for i in $(seq 1 30); do
             if curl -sk https://localhost:4430/admin/login > /dev/null 2>&1; then
               echo "EC-CUBE is ready"
+              ready=true
               break
             fi
             echo "Waiting for EC-CUBE... ($i/30)"
             sleep 5
           done
+          if [ "$ready" != "true" ]; then
+            echo "EC-CUBE did not become ready in time" >&2
+            exit 1
+          fi
 
       - name: Run Playwright tests
         run: npx playwright test --reporter=list
