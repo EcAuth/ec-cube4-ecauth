@@ -27,10 +27,8 @@ class ConfigType extends AbstractType
                 ],
             ])
             ->add('client_secret', PasswordType::class, [
-                'always_empty' => false,
-                'constraints' => [
-                    new NotBlank(),
-                ],
+                'required' => false,
+                'mapped' => false,
             ])
             ->add('rp_id', TextType::class, [
                 'required' => false,

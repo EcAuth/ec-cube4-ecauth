@@ -33,6 +33,10 @@ class ConfigController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $Config = $form->getData();
+            $clientSecret = $form->get('client_secret')->getData();
+            if ($clientSecret !== null && $clientSecret !== '') {
+                $Config->setClientSecret($clientSecret);
+            }
             $this->entityManager->persist($Config);
             $this->entityManager->flush();
 
