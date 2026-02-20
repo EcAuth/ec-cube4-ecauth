@@ -158,7 +158,8 @@ class PasskeyAuthService
             $session->set('ecauth_access_token', $accessToken);
         }
 
-        // 管理者セッション確立
+        // 管理者セッション確立（セッション固定化攻撃対策）
+        $session->migrate(true);
         $token = new UsernamePasswordToken($Member, 'admin', $Member->getRoles());
         $this->tokenStorage->setToken($token);
         $session->set('_security_admin', serialize($token));
