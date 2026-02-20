@@ -94,6 +94,11 @@ ec-cube4-ecauth/
 | `DELETE /b2b/passkey/{credentialId}` | Bearer Token | 削除 |
 | `POST /token` | client_id + client_secret | トークン交換 |
 
+## コーディング規約
+
+- **Entity プロパティ名は snake_case** を使用する（EC-CUBE 本体の規約に準拠）。PSR-12 の camelCase 推奨よりも EC-CUBE 本体との一貫性を優先する
+- EC-CUBE 本体のコーディングスタイルに従う
+
 ## セキュリティ注意事項
 
 - client_secret はサーバーサイドのみ。JS に渡さない
