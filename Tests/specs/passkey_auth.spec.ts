@@ -26,15 +26,17 @@ test.describe('パスキーログインフロー', () => {
       },
     });
 
-    await page.goto(`${ADMIN_URL}/login`);
+    try {
+      await page.goto(`${ADMIN_URL}/login`);
 
-    const passkeyBtn = page.locator('#ecauth-passkey-login');
-    await passkeyBtn.click();
+      const passkeyBtn = page.locator('#ecauth-passkey-login');
+      await passkeyBtn.click();
 
-    // ボタンが disabled になることを確認（認証中状態）
-    await expect(passkeyBtn).toBeDisabled();
-
-    // クリーンアップ
-    await cdpSession.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
+      // ボタンが disabled になることを確認（認証中状態）
+      await expect(passkeyBtn).toBeDisabled();
+    } finally {
+      // クリーンアップ
+      await cdpSession.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
+    }
   });
 });
