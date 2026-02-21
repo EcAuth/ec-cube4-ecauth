@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 $finder = PhpCsFixer\Finder::create()
     ->in([
-        __DIR__.'/Controller',
-        __DIR__.'/Entity',
-        __DIR__.'/Form',
-        __DIR__.'/Repository',
-        __DIR__.'/Service',
+        __DIR__.'/../Controller',
+        __DIR__.'/../Entity',
+        __DIR__.'/../Form',
+        __DIR__.'/../Repository',
+        __DIR__.'/../Service',
     ])
     ->append([
-        __DIR__.'/EcAuthLoginEvent.php',
-        __DIR__.'/EcAuthLoginNav.php',
-        __DIR__.'/PluginManager.php',
+        __DIR__.'/../EcAuthLoginEvent.php',
+        __DIR__.'/../EcAuthLoginNav.php',
+        __DIR__.'/../PluginManager.php',
     ])
     ->name('*.php');
 

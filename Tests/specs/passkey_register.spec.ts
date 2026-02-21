@@ -16,7 +16,7 @@ test.describe('パスキー管理画面', () => {
 
   test('パスキー管理画面にアクセスできる', async ({ page }) => {
     await page.goto(`${ADMIN_URL}/ecauth/passkey/`);
-    await expect(page.locator('text=登録済みパスキー')).toBeVisible();
+    await expect(page.locator('.card-header:has-text("登録済みパスキー")')).toBeVisible();
   });
 
   test('パスキー追加ボタンが表示される', async ({ page }) => {

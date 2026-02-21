@@ -42,7 +42,7 @@ jobs:
         run: composer install --no-progress --prefer-dist
 
       - name: Run Rector (dry-run)
-        run: vendor/bin/rector process --dry-run
+        run: vendor/bin/rector process --dry-run --config Tests/rector.php
 
   cs-fixer:
     name: PHP CS Fixer
@@ -60,4 +60,4 @@ jobs:
         run: composer install --no-progress --prefer-dist
 
       - name: Run PHP CS Fixer (dry-run)
-        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff --config Tests/.php-cs-fixer.dist.php

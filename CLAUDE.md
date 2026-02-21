@@ -7,6 +7,12 @@
 EC-CUBE 4.3系管理画面向け EcAuth B2Bパスキー認証プラグイン（EcAuthLogin43）。
 EcAuth Identity Provider と連携し、管理画面にパスキー（WebAuthn/FIDO2）認証を追加する。
 
+## 注意事項
+
+プラグインインストール後に docker 側で何らかの修正をしたり、 EC-CUBEコア側にパッチをあてるのは本来の EC-CUBE プラグインの開発要件から大きく遺脱するので絶対にしないでください。
+EC-CUBEプラグインは、EC-CUBE管理画面の Webインストーラーからインストール可能なことが絶対条件です。
+現在は開発用途で composer ローカルリポジトリを使用しています
+
 ## 開発コマンド
 
 ### Docker 環境
