@@ -1,0 +1,4 @@
+services:
+  ec-cube:
+    volumes:
+      - ".:/plugin:cached"

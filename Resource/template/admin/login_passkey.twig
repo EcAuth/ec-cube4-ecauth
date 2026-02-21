@@ -1,0 +1,58 @@
+<script src="{{ asset('EcAuthLogin43/assets/js/webauthn.js', 'plugin') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // HTTPS かつ WebAuthn 対応時のみ表示
+    if (location.protocol !== 'https:' || typeof window.PublicKeyCredential === 'undefined') {
+        return;
+    }
+
+    var loginForm = document.querySelector('form[action*="login"]');
+    if (!loginForm) {
+        return;
+    }
+
+    var submitButton = loginForm.querySelector('button[type="submit"]');
+    if (!submitButton) {
+        return;
+    }
+
+    // パスキーログインボタンを作成
+    var passkeyBtn = document.createElement('button');
+    passkeyBtn.type = 'button';
+    passkeyBtn.id = 'ecauth-passkey-login';
+    passkeyBtn.className = 'btn btn-ec-regular btn-block mt-3';
+    passkeyBtn.textContent = '{{ "ecauth_login43.admin.login.passkey_button"|trans }}';
+
+    // ボタンを追加
+    submitButton.parentNode.insertBefore(passkeyBtn, submitButton.nextSibling);
+
+    // CSRF トークン取得（ecauth_passkey ID で生成）
+    var csrfToken = '{{ csrf_token("ecauth_passkey") }}';
+
+    passkeyBtn.addEventListener('click', function() {
+        passkeyBtn.disabled = true;
+        passkeyBtn.textContent = '認証中...';
+
+        EcAuthWebAuthn.authenticate(
+            '{{ url("ecauth_passkey_authenticate_options") }}',
+            '{{ url("ecauth_passkey_authenticate_verify") }}',
+            csrfToken
+        ).then(function(result) {
+            if (result.redirect_url) {
+                window.location.href = result.redirect_url;
+            } else {
+                passkeyBtn.disabled = false;
+                passkeyBtn.textContent = '{{ "ecauth_login43.admin.login.passkey_button"|trans }}';
+                alert('{{ "ecauth_login43.admin.login.passkey.error"|trans }}');
+            }
+        }).catch(function(error) {
+            passkeyBtn.disabled = false;
+            passkeyBtn.textContent = '{{ "ecauth_login43.admin.login.passkey_button"|trans }}';
+            if (error.name !== 'NotAllowedError') {
+                console.error('Passkey authentication error:', error);
+                alert('{{ "ecauth_login43.admin.login.passkey.error"|trans }}');
+            }
+        });
+    });
+});
+</script>

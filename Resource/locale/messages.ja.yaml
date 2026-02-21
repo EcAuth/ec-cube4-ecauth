@@ -1,0 +1,51 @@
+# 設定画面
+ecauth_login43.admin.config.title: EcAuth 設定
+ecauth_login43.admin.config.sub_title: プラグイン設定
+ecauth_login43.admin.config.header: EcAuth 接続設定
+ecauth_login43.admin.config.ecauth_base_url: EcAuth Base URL
+ecauth_login43.admin.config.client_id: Client ID
+ecauth_login43.admin.config.client_secret: Client Secret
+ecauth_login43.admin.config.rp_id: RP ID
+ecauth_login43.admin.config.rp_id.help: 未設定の場合、サイトのホスト名が使用されます。
+ecauth_login43.admin.config.required: 必須
+ecauth_login43.admin.config.save: 登録
+ecauth_login43.admin.config.back: 戻る
+ecauth_login43.admin.config.save.success: 設定を保存しました。
+
+# ナビゲーション
+ecauth_login43.admin.nav.config: EcAuth
+ecauth_login43.admin.nav.config.setting: EcAuth 設定
+ecauth_login43.admin.nav.config.passkey: パスキー管理
+
+# パスキー管理画面
+ecauth_login43.admin.passkey.title: パスキー管理
+ecauth_login43.admin.passkey.sub_title: パスキー管理
+ecauth_login43.admin.passkey.header: 登録済みパスキー
+ecauth_login43.admin.passkey.device_name: デバイス名
+ecauth_login43.admin.passkey.created_at: 登録日時
+ecauth_login43.admin.passkey.last_used_at: 最終使用日時
+ecauth_login43.admin.passkey.delete: 削除
+ecauth_login43.admin.passkey.delete.confirm: このパスキーを削除してよろしいですか？
+ecauth_login43.admin.passkey.delete.success: パスキーを削除しました。
+ecauth_login43.admin.passkey.delete.error: パスキーの削除に失敗しました。
+ecauth_login43.admin.passkey.add: パスキーを追加
+ecauth_login43.admin.passkey.empty: 登録済みパスキーはありません。
+ecauth_login43.admin.passkey.verify_password: パスワード確認
+ecauth_login43.admin.passkey.verify_password.label: 本人確認のため、パスワードを入力してください。
+ecauth_login43.admin.passkey.verify_password.submit: 確認
+ecauth_login43.admin.passkey.verify_password.cancel: キャンセル
+ecauth_login43.admin.passkey.verify_password.error: パスワードが正しくありません。
+ecauth_login43.admin.passkey.register.success: パスキーを登録しました。
+ecauth_login43.admin.passkey.register.error: パスキーの登録に失敗しました。
+ecauth_login43.admin.passkey.config_required: EcAuth の設定を先に完了してください。
+
+# ログイン画面
+ecauth_login43.admin.login.passkey_button: パスキーでログイン
+ecauth_login43.admin.login.passkey.error: パスキー認証に失敗しました。
+ecauth_login43.admin.login.passkey.not_supported: お使いのブラウザはパスキー認証に対応していません。
+ecauth_login43.admin.login.passkey.https_required: パスキー認証にはHTTPS接続が必要です。
+
+# コールバック
+ecauth_login43.admin.callback.error: 認証に失敗しました。
+ecauth_login43.admin.callback.state_mismatch: 認証リクエストが不正です。
+ecauth_login43.admin.callback.user_not_found: 対応する管理者アカウントが見つかりません。

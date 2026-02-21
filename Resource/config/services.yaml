@@ -1,0 +1,15 @@
+services:
+    Plugin\EcAuthLogin43\:
+        resource: '../../*'
+        exclude: '../../{Entity,Resource,Tests,tests}'
+        autowire: true
+        autoconfigure: true
+
+eccube:
+    rate_limiter:
+        ecauth_passkey_authenticate:
+            route: ecauth_passkey_authenticate_options
+            method: ['POST']
+            type: ['ip']
+            limit: 10
+            interval: '60 minutes'

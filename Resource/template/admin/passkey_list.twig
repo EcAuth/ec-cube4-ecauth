@@ -1,0 +1,207 @@
+{% extends '@admin/default_frame.twig' %}
+
+{% set menus = ['setting', 'ecauth_login43', 'ecauth_login43_passkey'] %}
+
+{% block title %}{{ 'ecauth_login43.admin.passkey.title'|trans }}{% endblock %}
+{% block sub_title %}{{ 'ecauth_login43.admin.passkey.sub_title'|trans }}{% endblock %}
+
+{% block stylesheet %}
+<style>
+    #ecauth-password-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    #ecauth-password-modal.show {
+        display: flex;
+    }
+    #ecauth-password-modal .modal-content {
+        background: #fff;
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+    }
+    #ecauth-password-modal .modal-error {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block javascript %}
+<script src="{{ asset('EcAuthLogin43/assets/js/webauthn.js', 'plugin') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var addBtn = document.getElementById('ecauth-passkey-add');
+    var modal = document.getElementById('ecauth-password-modal');
+    var cancelBtn = document.getElementById('ecauth-password-cancel');
+    var confirmBtn = document.getElementById('ecauth-password-confirm');
+    var passwordInput = document.getElementById('ecauth-password-input');
+    var errorMsg = document.getElementById('ecauth-password-error');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    var token = csrfToken ? csrfToken.getAttribute('content') : '';
+
+    if (!addBtn) return;
+
+    addBtn.addEventListener('click', function() {
+        if (location.protocol !== 'https:' || typeof window.PublicKeyCredential === 'undefined') {
+            alert('{{ "ecauth_login43.admin.login.passkey.not_supported"|trans }}');
+            return;
+        }
+        modal.classList.add('show');
+        passwordInput.value = '';
+        errorMsg.style.display = 'none';
+        passwordInput.focus();
+    });
+
+    cancelBtn.addEventListener('click', function() {
+        modal.classList.remove('show');
+    });
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+        }
+    });
+
+    confirmBtn.addEventListener('click', function() {
+        doVerifyAndRegister();
+    });
+
+    passwordInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            doVerifyAndRegister();
+        }
+    });
+
+    function doVerifyAndRegister() {
+        var password = passwordInput.value;
+        if (!password) return;
+
+        confirmBtn.disabled = true;
+        errorMsg.style.display = 'none';
+
+        // 1. パスワード確認 → b2b_subject 取得
+        fetch('{{ url("ecauth_login43_admin_passkey_verify_password") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify({ password: password })
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('verify_password_failed');
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            modal.classList.remove('show');
+
+            // 2. パスキー登録
+            return EcAuthWebAuthn.register(
+                '{{ url("ecauth_passkey_register_options") }}',
+                '{{ url("ecauth_passkey_register_verify") }}',
+                token,
+                data.b2b_subject,
+                null
+            );
+        })
+        .then(function() {
+            alert('{{ "ecauth_login43.admin.passkey.register.success"|trans }}');
+            window.location.reload();
+        })
+        .catch(function(error) {
+            confirmBtn.disabled = false;
+            if (error.message === 'verify_password_failed') {
+                errorMsg.textContent = '{{ "ecauth_login43.admin.passkey.verify_password.error"|trans }}';
+                errorMsg.style.display = 'block';
+            } else if (error.name !== 'NotAllowedError') {
+                alert('{{ "ecauth_login43.admin.passkey.register.error"|trans }}');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block main %}
+    <div class="c-contentsArea__cols">
+        <div class="c-contentsArea__primaryCol">
+            <div class="c-primaryCol">
+                <div class="card rounded border-0 mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>{{ 'ecauth_login43.admin.passkey.header'|trans }}</span>
+                        <button type="button" id="ecauth-passkey-add" class="btn btn-ec-regular btn-sm">
+                            <i class="fa fa-plus mr-1"></i>{{ 'ecauth_login43.admin.passkey.add'|trans }}
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        {% if error %}
+                            <div class="alert alert-warning">{{ error|trans }}</div>
+                        {% elseif passkeys is empty %}
+                            <p class="text-muted">{{ 'ecauth_login43.admin.passkey.empty'|trans }}</p>
+                        {% else %}
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>{{ 'ecauth_login43.admin.passkey.device_name'|trans }}</th>
+                                        <th>{{ 'ecauth_login43.admin.passkey.created_at'|trans }}</th>
+                                        <th>{{ 'ecauth_login43.admin.passkey.last_used_at'|trans }}</th>
+                                        <th class="text-right"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for passkey in passkeys %}
+                                        <tr>
+                                            <td>{{ passkey.deviceName|default('-') }}</td>
+                                            <td>{{ passkey.createdAt|default('-') }}</td>
+                                            <td>{{ passkey.lastUsedAt|default('-') }}</td>
+                                            <td class="text-right">
+                                                <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credentialId }) }}" style="display:inline">
+                                                    <input type="hidden" name="_method" value="DELETE">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                                                    <button type="submit" class="btn btn-ec-actionIcon"
+                                                            onclick="return confirm('{{ 'ecauth_login43.admin.passkey.delete.confirm'|trans }}')">
+                                                        <i class="fa fa-close fa-lg text-secondary"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- パスワード確認モーダル -->
+    <div id="ecauth-password-modal">
+        <div class="modal-content">
+            <h5 class="mb-3">{{ 'ecauth_login43.admin.passkey.verify_password'|trans }}</h5>
+            <p class="text-muted mb-3">{{ 'ecauth_login43.admin.passkey.verify_password.label'|trans }}</p>
+            <input type="password" id="ecauth-password-input" class="form-control mb-2" autocomplete="current-password">
+            <div id="ecauth-password-error" class="modal-error"></div>
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" id="ecauth-password-cancel" class="btn btn-ec-sub mr-2">{{ 'ecauth_login43.admin.passkey.verify_password.cancel'|trans }}</button>
+                <button type="button" id="ecauth-password-confirm" class="btn btn-ec-conversion">{{ 'ecauth_login43.admin.passkey.verify_password.submit'|trans }}</button>
+            </div>
+        </div>
+    </div>
+
+    <meta name="csrf-token" content="{{ csrf_token('ecauth_passkey') }}">
+{% endblock %}
