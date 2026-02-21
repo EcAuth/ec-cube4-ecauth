@@ -169,7 +169,7 @@ class PasskeyAuthController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        if (!is_array($data) || !isset($data['response'])) {
+        if (!is_array($data) || !isset($data['response']) || !is_array($data['response'])) {
             return $this->json(['error' => 'Invalid request body'], 400);
         }
 
