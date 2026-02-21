@@ -210,8 +210,16 @@ class PasskeyAuthService
             return null;
         }
 
-        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+        $payloadB64 = strtr($parts[1], '-_', '+/');
+        $payloadB64 = str_pad($payloadB64, (int) ceil(strlen($payloadB64) / 4) * 4, '=');
+        $payload = json_decode(base64_decode($payloadB64), true);
         if (!is_array($payload) || !isset($payload['sub'])) {
+            return null;
+        }
+
+        if (isset($payload['exp']) && $payload['exp'] < time()) {
+            $this->logger->warning('ID token expired');
+
             return null;
         }
 
