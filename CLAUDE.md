@@ -44,8 +44,8 @@ composer cs-check
 ### E2E テスト
 
 ```bash
-yarn install
-npx playwright test
+pnpm install
+pnpm exec playwright test
 ```
 
 ## ディレクトリ構成
