@@ -13,16 +13,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Create .env file
         run: |
@@ -53,7 +56,7 @@ jobs:
           fi
 
       - name: Run Playwright tests
-        run: npx playwright test --reporter=list
+        run: pnpm exec playwright test --reporter=list
         env:
           BASE_URL: https://localhost:8081
 
