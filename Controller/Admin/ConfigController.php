@@ -11,6 +11,8 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class ConfigController extends AbstractController
 {
+    private const BASE_DOMAIN = '.ec-auth.io';
+
     /**
      * @var ConfigRepository
      */
@@ -28,11 +30,24 @@ class ConfigController extends AbstractController
     public function index(Request $request)
     {
         $Config = $this->configRepository->get();
+        $hasClientSecret = $Config && $Config->getClientSecret() !== null && $Config->getClientSecret() !== '';
+
+        // DB のフル URL からサブドメイン部分を抽出してフォームにセット
+        $subdomain = $this->extractSubdomain($Config ? $Config->getEcauthBaseUrl() : null);
+        if ($subdomain !== null) {
+            $Config->setEcauthBaseUrl($subdomain);
+        }
+
         $form = $this->createForm(ConfigType::class, $Config);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $Config = $form->getData();
+
+            // サブドメインをフル URL に変換して保存
+            $inputSubdomain = $Config->getEcauthBaseUrl();
+            $Config->setEcauthBaseUrl('https://' . $inputSubdomain . self::BASE_DOMAIN);
+
             $clientSecret = $form->get('client_secret')->getData();
             if ($clientSecret !== null && $clientSecret !== '') {
                 $Config->setClientSecret($clientSecret);
@@ -47,6 +62,22 @@ class ConfigController extends AbstractController
 
         return [
             'form' => $form->createView(),
+            'has_client_secret' => $hasClientSecret,
         ];
+    }
+
+    private function extractSubdomain(?string $baseUrl): ?string
+    {
+        if ($baseUrl === null || $baseUrl === '') {
+            return null;
+        }
+
+        // https://{subdomain}.ec-auth.io からサブドメインを抽出
+        $pattern = '#^https?://(.+)' . preg_quote(self::BASE_DOMAIN, '#') . '/?$#';
+        if (preg_match($pattern, $baseUrl, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 }
