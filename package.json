@@ -2,10 +2,12 @@
   "name": "ec-cube4-ecauth",
   "private": true,
   "scripts": {
+    "build:js": "cp node_modules/@ecauth/auth-js/dist/ecauth-auth.umd.js Resource/assets/js/ecauth-auth.umd.js",
     "test": "playwright test",
     "test:headed": "playwright test --headed"
   },
   "devDependencies": {
+    "@ecauth/auth-js": "^0.1.0",
     "@playwright/test": "^1.58.2"
   },
   "packageManager": "pnpm@10.30.3"

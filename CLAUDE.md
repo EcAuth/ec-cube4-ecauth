@@ -80,7 +80,7 @@ ec-cube4-ecauth/
 │   │   ├── passkey_list.twig
 │   │   └── login_passkey.twig
 │   └── assets/js/
-│       └── webauthn.js
+│       └── ecauth-auth.umd.js       # @ecauth/auth-js ビルド成果物（gitignore）
 ├── Tests/specs/                     # Playwright E2E テスト
 ├── Dockerfile
 ├── docker-compose.yml

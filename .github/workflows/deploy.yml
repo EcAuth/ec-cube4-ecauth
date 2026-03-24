@@ -12,6 +12,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build JS assets
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run build:js
+
       - name: Packaging
         working-directory: ../
         run: |
@@ -25,6 +36,8 @@ jobs:
           rm -f "$GITHUB_WORKSPACE/package.json"
           rm -f "$GITHUB_WORKSPACE/package-lock.json"
           rm -f "$GITHUB_WORKSPACE/yarn.lock"
+          rm -f "$GITHUB_WORKSPACE/pnpm-lock.yaml"
+          rm -f "$GITHUB_WORKSPACE/pnpm-workspace.yaml"
           rm -f "$GITHUB_WORKSPACE/playwright.config.ts"
           rm -f "$GITHUB_WORKSPACE/phpstan.neon.dist"
           rm -f "$GITHUB_WORKSPACE/rector.php"
