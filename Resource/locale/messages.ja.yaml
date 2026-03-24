@@ -2,7 +2,8 @@
 ecauth_login43.admin.config.title: EcAuth 設定
 ecauth_login43.admin.config.sub_title: プラグイン設定
 ecauth_login43.admin.config.header: EcAuth 接続設定
-ecauth_login43.admin.config.ecauth_base_url: EcAuth Base URL
+ecauth_login43.admin.config.ecauth_base_url: Organization Code
+ecauth_login43.admin.config.ecauth_base_url.help: EcAuth のサブドメイン（Organization Code）を入力してください。
 ecauth_login43.admin.config.client_id: Client ID
 ecauth_login43.admin.config.client_secret: Client Secret
 ecauth_login43.admin.config.rp_id: RP ID

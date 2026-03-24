@@ -24,8 +24,17 @@
                                     <span class="badge badge-primary ml-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
                                 </div>
                                 <div class="col">
-                                    {{ form_widget(form.ecauth_base_url) }}
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">https://</span>
+                                        </div>
+                                        {{ form_widget(form.ecauth_base_url) }}
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">.ec-auth.io</span>
+                                        </div>
+                                    </div>
                                     {{ form_errors(form.ecauth_base_url) }}
+                                    <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.ecauth_base_url.help'|trans }}</p>
                                 </div>
                             </div>
                             <div class="row mb-2">
@@ -44,7 +53,7 @@
                                     <span class="badge badge-primary ml-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
                                 </div>
                                 <div class="col">
-                                    {{ form_widget(form.client_secret) }}
+                                    {{ form_widget(form.client_secret, { attr: has_client_secret ? { placeholder: '••••••••••••••••' } : {} }) }}
                                     {{ form_errors(form.client_secret) }}
                                 </div>
                             </div>

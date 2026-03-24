@@ -6,7 +6,6 @@ use Plugin\EcAuthLogin43\Entity\Config;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
@@ -16,7 +15,7 @@ class ConfigType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
-            ->add('ecauth_base_url', UrlType::class, [
+            ->add('ecauth_base_url', TextType::class, [
                 'constraints' => [
                     new NotBlank(),
                 ],
