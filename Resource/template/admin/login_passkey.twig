@@ -1,4 +1,4 @@
-<script src="{{ asset('EcAuthLogin43/assets/js/webauthn.js', 'plugin') }}"></script>
+<script src="{{ asset('EcAuthLogin43/assets/js/ecauth-auth.umd.js', 'plugin') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // HTTPS かつ WebAuthn 対応時のみ表示
@@ -33,11 +33,11 @@ document.addEventListener('DOMContentLoaded', function() {
         passkeyBtn.disabled = true;
         passkeyBtn.textContent = '認証中...';
 
-        EcAuthWebAuthn.authenticate(
-            '{{ url("ecauth_passkey_authenticate_options") }}',
-            '{{ url("ecauth_passkey_authenticate_verify") }}',
-            csrfToken
-        ).then(function(result) {
+        EcAuth.webauthn.authenticate({
+            optionsUrl: '{{ url("ecauth_passkey_authenticate_options") }}',
+            verifyUrl: '{{ url("ecauth_passkey_authenticate_verify") }}',
+            csrfToken: csrfToken
+        }).then(function(result) {
             if (result.redirect_url) {
                 window.location.href = result.redirect_url;
             } else {

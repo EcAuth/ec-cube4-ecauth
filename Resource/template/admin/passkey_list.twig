@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block javascript %}
-<script src="{{ asset('EcAuthLogin43/assets/js/webauthn.js', 'plugin') }}"></script>
+<script src="{{ asset('EcAuthLogin43/assets/js/ecauth-auth.umd.js', 'plugin') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var addBtn = document.getElementById('ecauth-passkey-add');
@@ -110,13 +110,12 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.remove('show');
 
             // 2. パスキー登録
-            return EcAuthWebAuthn.register(
-                '{{ url("ecauth_passkey_register_options") }}',
-                '{{ url("ecauth_passkey_register_verify") }}',
-                token,
-                data.b2b_subject,
-                null
-            );
+            return EcAuth.webauthn.register({
+                optionsUrl: '{{ url("ecauth_passkey_register_options") }}',
+                verifyUrl: '{{ url("ecauth_passkey_register_verify") }}',
+                csrfToken: token,
+                b2bSubject: data.b2b_subject
+            });
         })
         .then(function() {
             alert('{{ "ecauth_login43.admin.passkey.register.success"|trans }}');
