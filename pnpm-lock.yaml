@@ -9,16 +9,16 @@ importers:
   .:
     devDependencies:
       '@ecauth/auth-js':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.1.3
+        version: 0.1.3
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2
 
 packages:
 
-  '@ecauth/auth-js@0.1.1':
-    resolution: {integrity: sha512-XFAUnguz2bqRDdjPdvWWwkPB+35WsBu+GIQRhUfNfA2zy8KUN/KyQlCVWrbKw5BIQk0TO6Unr/fZXwto2UbjJg==}
+  '@ecauth/auth-js@0.1.3':
+    resolution: {integrity: sha512-40pcCkXTgkEGCt9BVphrJvJOEycL+JKDLJioKKZjrTCX60XgdgmHpxEtytXiDhcvXwXhXNCOGDYTEHj2NnSDsw==}
 
   '@playwright/test@1.58.2':
     resolution: {integrity: sha512-akea+6bHYBBfA9uQqSYmlJXn61cTa+jbO87xVLCWbTqbWadRVmhxlXATaOjOgcBaWU4ePo0wB41KMFv3o35IXA==}
@@ -42,7 +42,7 @@ packages:
 
 snapshots:
 
-  '@ecauth/auth-js@0.1.1': {}
+  '@ecauth/auth-js@0.1.3': {}
 
   '@playwright/test@1.58.2':
     dependencies:
