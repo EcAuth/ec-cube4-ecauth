@@ -1,3 +1,6 @@
+parameters:
+    ecauth_auth_js_version: 'latest'
+
 services:
     Plugin\EcAuthLogin43\:
         resource: '../../*'
