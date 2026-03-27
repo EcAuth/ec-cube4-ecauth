@@ -1,9 +1,14 @@
+parameters:
+    ecauth_auth_js_version: 'latest'
+
 services:
     Plugin\EcAuthLogin43\:
         resource: '../../*'
         exclude: '../../{Entity,Resource,Tests,tests}'
         autowire: true
         autoconfigure: true
+        bind:
+            $ecauth_auth_js_version: '%ecauth_auth_js_version%'
 
 eccube:
     rate_limiter:

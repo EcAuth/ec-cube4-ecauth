@@ -17,11 +17,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build JS assets
+      - name: Pin auth-js version in services.yaml
         run: |
           corepack enable
           pnpm install --frozen-lockfile
-          pnpm run build:js
+          AUTH_JS_VERSION=$(node -e "console.log(require('./node_modules/@ecauth/auth-js/package.json').version)")
+          echo "Pinning @ecauth/auth-js version to ${AUTH_JS_VERSION}"
+          sed -i "s/ecauth_auth_js_version: 'latest'/ecauth_auth_js_version: '${AUTH_JS_VERSION}'/" Resource/config/services.yaml
 
       - name: Packaging
         working-directory: ../

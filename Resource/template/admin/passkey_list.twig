@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block javascript %}
-<script src="{{ asset('EcAuthLogin43/assets/js/ecauth-auth.umd.js', 'plugin') }}"></script>
+<script src="https://cdn.ec-auth.io/auth-js/{{ ecauth_auth_js_version }}/ecauth-auth.umd.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var addBtn = document.getElementById('ecauth-passkey-add');
