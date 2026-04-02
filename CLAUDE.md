@@ -92,13 +92,13 @@ ec-cube4-ecauth/
 
 | エンドポイント | 認証方式 | 用途 |
 |----------------|----------|------|
-| `POST /b2b/passkey/authenticate/options` | client_id | チャレンジ取得 |
-| `POST /b2b/passkey/authenticate/verify` | client_id | 署名検証→認可コード |
-| `POST /b2b/passkey/register/options` | client_id + client_secret | 登録オプション |
-| `POST /b2b/passkey/register/verify` | client_id + client_secret | 登録完了 |
-| `GET /b2b/passkey/list` | Bearer Token | 一覧取得 |
-| `DELETE /b2b/passkey/{credentialId}` | Bearer Token | 削除 |
-| `POST /token` | client_id + client_secret | トークン交換 |
+| `POST /v1/b2b/passkey/authenticate/options` | client_id | チャレンジ取得 |
+| `POST /v1/b2b/passkey/authenticate/verify` | client_id | 署名検証→認可コード |
+| `POST /v1/b2b/passkey/register/options` | client_id + client_secret | 登録オプション |
+| `POST /v1/b2b/passkey/register/verify` | client_id + client_secret | 登録完了 |
+| `GET /v1/b2b/passkey/list` | Bearer Token | 一覧取得 |
+| `DELETE /v1/b2b/passkey/{credentialId}` | Bearer Token | 削除 |
+| `POST /v1/token` | client_id + client_secret | トークン交換 |
 
 ## コーディング規約
 

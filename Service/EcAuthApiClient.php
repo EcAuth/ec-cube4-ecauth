@@ -41,7 +41,7 @@ class EcAuthApiClient
             $body['b2b_subject'] = $b2bSubject;
         }
 
-        return $this->post('/b2b/passkey/authenticate/options', $body);
+        return $this->post('/v1/b2b/passkey/authenticate/options', $body);
     }
 
     /**
@@ -62,7 +62,7 @@ class EcAuthApiClient
             $body['state'] = $state;
         }
 
-        return $this->post('/b2b/passkey/authenticate/verify', $body);
+        return $this->post('/v1/b2b/passkey/authenticate/verify', $body);
     }
 
     /**
@@ -85,7 +85,7 @@ class EcAuthApiClient
             $body['device_name'] = $deviceName;
         }
 
-        return $this->postWithSecret('/b2b/passkey/register/options', $body);
+        return $this->postWithSecret('/v1/b2b/passkey/register/options', $body);
     }
 
     /**
@@ -105,7 +105,7 @@ class EcAuthApiClient
             $body['device_name'] = $deviceName;
         }
 
-        return $this->postWithSecret('/b2b/passkey/register/verify', $body);
+        return $this->postWithSecret('/v1/b2b/passkey/register/verify', $body);
     }
 
     /**
@@ -115,7 +115,7 @@ class EcAuthApiClient
      */
     public function listPasskeys(string $accessToken): array
     {
-        return $this->request('GET', '/b2b/passkey/list', [], [
+        return $this->request('GET', '/v1/b2b/passkey/list', [], [
             'Authorization' => 'Bearer '.$accessToken,
         ]);
     }
@@ -127,7 +127,7 @@ class EcAuthApiClient
      */
     public function deletePasskey(string $accessToken, string $credentialId): array
     {
-        return $this->request('DELETE', '/b2b/passkey/'.urlencode($credentialId), [], [
+        return $this->request('DELETE', '/v1/b2b/passkey/'.urlencode($credentialId), [], [
             'Authorization' => 'Bearer '.$accessToken,
         ]);
     }
@@ -139,7 +139,7 @@ class EcAuthApiClient
      */
     public function exchangeToken(string $code, string $redirectUri): array
     {
-        return $this->postForm('/token', [
+        return $this->postForm('/v1/token', [
             'grant_type' => 'authorization_code',
             'code' => $code,
             'redirect_uri' => $redirectUri,
