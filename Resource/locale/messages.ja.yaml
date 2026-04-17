@@ -2,12 +2,15 @@
 ecauth_login43.admin.config.title: EcAuth 設定
 ecauth_login43.admin.config.sub_title: プラグイン設定
 ecauth_login43.admin.config.header: EcAuth 接続設定
-ecauth_login43.admin.config.ecauth_base_url: Organization Code
-ecauth_login43.admin.config.ecauth_base_url.help: EcAuth のサブドメイン（Organization Code）を入力してください。
+ecauth_login43.admin.config.ecauth_base_url: EcAuth URL
+ecauth_login43.admin.config.ecauth_base_url.help: 通常は未入力で構いません。Client ID から自動解決されます。ステージング・開発環境では直接 URL を指定できます。
 ecauth_login43.admin.config.client_id: Client ID
 ecauth_login43.admin.config.client_secret: Client Secret
 ecauth_login43.admin.config.rp_id: RP ID
 ecauth_login43.admin.config.rp_id.help: 未設定の場合、サイトのホスト名が使用されます。
+ecauth_login43.admin.config.advanced_settings: 高度な設定
+ecauth_login43.admin.config.advanced_settings.help: 通常は変更不要です。ステージング・開発環境や RP ID のカスタマイズが必要な場合のみ使用してください。
+ecauth_login43.admin.config.client_resolve.failed: Client ID に対応するテナントが見つかりませんでした。Client ID を確認するか、高度な設定で EcAuth URL を直接指定してください。
 ecauth_login43.admin.config.required: 必須
 ecauth_login43.admin.config.save: 登録
 ecauth_login43.admin.config.back: 戻る

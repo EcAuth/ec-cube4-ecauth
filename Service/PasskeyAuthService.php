@@ -57,7 +57,7 @@ class PasskeyAuthService
         EcAuthApiClient $apiClient,
         TokenStorageInterface $tokenStorage,
         UserPasswordHasherInterface $passwordHasher,
-        LoggerInterface $logger,
+        LoggerInterface $logger
     ) {
         $this->entityManager = $entityManager;
         $this->memberRepository = $memberRepository;

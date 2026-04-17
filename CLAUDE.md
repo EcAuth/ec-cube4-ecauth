@@ -104,6 +104,53 @@ ec-cube4-ecauth/
 
 - **Entity プロパティ名は snake_case** を使用する（EC-CUBE 本体の規約に準拠）。PSR-12 の camelCase 推奨よりも EC-CUBE 本体との一貫性を優先する
 - EC-CUBE 本体のコーディングスタイルに従う
+- **関数定義（パラメータ）の末尾カンマは禁止**。PHP 8.0+ の構文であり、PHP 7.4 で動作しなくなるため。配列リテラルと関数呼び出しの末尾カンマ（PHP 7.3+ で可）はそのまま使ってよい
+  - `Tests/.php-cs-fixer.dist.php` の `trailing_comma_in_multiline` から `parameters` を除外済み（`arrays` / `arguments` のみ対象）
+  - `Tests/rector.php` の `phpVersion` は `PHP_74` に固定（7.4 互換のリファクタのみ適用）
+
+## HTTP クライアント (PSR-18)
+
+プラグイン内の HTTP 通信は **PSR-18 (`Psr\Http\Client\ClientInterface`)** の抽象に依存する。`GuzzleHttp\Client` を直接 `new` したり `use` したりしない。
+
+- DI するインタフェース:
+  - `Psr\Http\Client\ClientInterface` — HTTP 送信
+  - `Psr\Http\Message\RequestFactoryInterface` — PSR-7 Request 生成
+  - `Psr\Http\Message\StreamFactoryInterface` — PSR-7 Body 生成
+- 実装バインドは `Resource/config/services.yaml` の以下 3 エントリで一元管理:
+  ```yaml
+  Psr\Http\Client\ClientInterface:
+      class: GuzzleHttp\Client
+      arguments:
+          - { timeout: 30, http_errors: false }
+  Psr\Http\Message\RequestFactoryInterface:
+      class: GuzzleHttp\Psr7\HttpFactory
+  Psr\Http\Message\StreamFactoryInterface:
+      class: GuzzleHttp\Psr7\HttpFactory
+  ```
+- EC-CUBE 4.2+ は本体が `guzzlehttp/guzzle:^7` を依存として持つため Guzzle を利用。実装を差し替える場合は本エントリの class のみ変更する
+- `composer.json` は `psr/http-client` / `psr/http-factory` / `psr/http-message` のみを require し、Guzzle は直接 require しない（本体経由で解決）
+- 例外捕捉は `Psr\Http\Client\ClientExceptionInterface` を使う（Guzzle 固有の例外型には依存しない）
+
+## 環境変数の取り扱い
+
+**コード内で `getenv()` / `$_ENV` を直接参照しない**。Symfony の env プロセッサ (`%env(...)%`) を経由して DI で注入する。
+
+- 環境変数名は `services.yaml` の `bind:` または個別サービスの `arguments:` で `%env(...)%` 展開してパラメータとしてサービスに渡す
+- デフォルト値 (env 未設定時のフォールバック) は `parameters:` に定義し、`%env(default:<param名>:<ENV名>)%` で参照する
+  ```yaml
+  parameters:
+      ecauth_default_discovery_url: 'https://api.ec-auth.io'
+
+  services:
+      Plugin\EcAuthLogin43\:
+          # ...
+          bind:
+              $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
+  ```
+- メリット:
+  - モックテストで env を書き換えずにコンストラクタ引数で値を注入できる
+  - `bin/console debug:container --env-vars` で env 使用箇所を一覧できる
+  - env 未設定時のフォールバック値がコードではなく config に集約される
 
 ## セキュリティ注意事項
 

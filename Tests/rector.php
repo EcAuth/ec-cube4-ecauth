@@ -21,7 +21,8 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/../vendor',
     ]);
 
-    $rectorConfig->phpVersion(\Rector\ValueObject\PhpVersion::PHP_83);
+    // PHP 7.4 互換を維持したいので Rector のターゲットも PHP_74 に固定する
+    $rectorConfig->phpVersion(\Rector\ValueObject\PhpVersion::PHP_74);
 
     $rectorConfig->sets([
         SetList::CODE_QUALITY,

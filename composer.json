@@ -9,7 +9,10 @@
     "id": 999999
   },
   "require": {
-    "ec-cube/plugin-installer": "^2.0"
+    "ec-cube/plugin-installer": "^2.0",
+    "psr/http-client": "^1.0",
+    "psr/http-factory": "^1.0",
+    "psr/http-message": "^1.0 || ^2.0"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.64",

@@ -2,8 +2,12 @@
 
 namespace Plugin\EcAuthLogin43\Service;
 
-use GuzzleHttp\Client;
 use Plugin\EcAuthLogin43\Repository\ConfigRepository;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 class EcAuthApiClient
@@ -14,22 +18,41 @@ class EcAuthApiClient
     private $configRepository;
 
     /**
+     * @var ClientInterface
+     */
+    private $httpClient;
+
+    /**
+     * @var RequestFactoryInterface
+     */
+    private $requestFactory;
+
+    /**
+     * @var StreamFactoryInterface
+     */
+    private $streamFactory;
+
+    /**
      * @var LoggerInterface
      */
     private $logger;
 
     public function __construct(
         ConfigRepository $configRepository,
-        LoggerInterface $logger,
+        ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+        LoggerInterface $logger
     ) {
         $this->configRepository = $configRepository;
+        $this->httpClient = $httpClient;
+        $this->requestFactory = $requestFactory;
+        $this->streamFactory = $streamFactory;
         $this->logger = $logger;
     }
 
     /**
      * パスキー認証オプションを取得する。
-     *
-     *
      */
     public function authenticateOptions(string $rpId, ?string $b2bSubject = null): array
     {
@@ -48,7 +71,6 @@ class EcAuthApiClient
      * パスキー認証を検証する。
      *
      * @param array $response WebAuthn assertion response
-     *
      */
     public function authenticateVerify(string $sessionId, string $redirectUri, ?string $state, array $response): array
     {
@@ -67,8 +89,6 @@ class EcAuthApiClient
 
     /**
      * パスキー登録オプションを取得する。
-     *
-     *
      */
     public function registerOptions(string $rpId, string $b2bSubject, string $externalId, ?string $displayName = null, ?string $deviceName = null): array
     {
@@ -92,7 +112,6 @@ class EcAuthApiClient
      * パスキー登録を完了する。
      *
      * @param array $response WebAuthn attestation response
-     *
      */
     public function registerVerify(string $sessionId, array $response, ?string $deviceName = null): array
     {
@@ -110,8 +129,6 @@ class EcAuthApiClient
 
     /**
      * 登録済みパスキー一覧を取得する。
-     *
-     *
      */
     public function listPasskeys(string $accessToken): array
     {
@@ -122,8 +139,6 @@ class EcAuthApiClient
 
     /**
      * パスキーを削除する。
-     *
-     *
      */
     public function deletePasskey(string $accessToken, string $credentialId): array
     {
@@ -134,8 +149,6 @@ class EcAuthApiClient
 
     /**
      * 認可コードをトークンに交換する。
-     *
-     *
      */
     public function exchangeToken(string $code, string $redirectUri): array
     {
@@ -202,48 +215,18 @@ class EcAuthApiClient
                 'data' => ['error' => 'EcAuth Base URL is not configured'],
             ];
         }
-        $url = $baseUrl.$path;
-        $client = new Client();
 
-        try {
-            $response = $client->request('POST', $url, [
-                'form_params' => $params,
-                'headers' => [
-                    'Accept' => 'application/json',
-                ],
-                'http_errors' => false,
-                'timeout' => 30,
-            ]);
-            $statusCode = $response->getStatusCode();
-            $content = json_decode($response->getBody()->getContents(), true) ?? [];
+        $request = $this->requestFactory
+            ->createRequest('POST', $baseUrl.$path)
+            ->withHeader('Accept', 'application/json')
+            ->withHeader('Content-Type', 'application/x-www-form-urlencoded')
+            ->withBody($this->streamFactory->createStream(http_build_query($params)));
 
-            if ($statusCode >= 400) {
-                $this->logger->error('EcAuth API error', [
-                    'status' => $statusCode,
-                    'path' => $path,
-                    'response' => $this->redactSensitiveFields($content),
-                ]);
-            }
-
-            return [
-                'status' => $statusCode,
-                'data' => $content,
-            ];
-        } catch (\Exception $e) {
-            $this->logger->error('EcAuth API request failed', [
-                'path' => $path,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'status' => 500,
-                'data' => ['error' => $e->getMessage()],
-            ];
-        }
+        return $this->sendAndDecode($request, $path);
     }
 
     /**
-     * EcAuth API にリクエストを送信する。
+     * EcAuth API にリクエストを送信する (JSON ボディ)。
      */
     private function request(string $method, string $path, array $body = [], array $headers = []): array
     {
@@ -256,26 +239,35 @@ class EcAuthApiClient
                 'data' => ['error' => 'EcAuth Base URL is not configured'],
             ];
         }
-        $url = $baseUrl.$path;
-        $client = new Client();
 
-        $options = [
-            'headers' => array_merge([
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json',
-            ], $headers),
-            'http_errors' => false,
-            'timeout' => 30,
-        ];
+        $request = $this->requestFactory
+            ->createRequest($method, $baseUrl.$path)
+            ->withHeader('Accept', 'application/json');
 
-        if ($body !== []) {
-            $options['json'] = $body;
+        foreach ($headers as $name => $value) {
+            $request = $request->withHeader($name, $value);
         }
 
+        if ($body !== []) {
+            $request = $request
+                ->withHeader('Content-Type', 'application/json')
+                ->withBody($this->streamFactory->createStream((string) json_encode($body)));
+        }
+
+        return $this->sendAndDecode($request, $path);
+    }
+
+    /**
+     * PSR-7 Request を送信し、ステータスと JSON デコード済みボディを返す共通処理。
+     */
+    private function sendAndDecode(RequestInterface $request, string $path): array
+    {
         try {
-            $response = $client->request($method, $url, $options);
+            $response = $this->httpClient->sendRequest($request);
             $statusCode = $response->getStatusCode();
-            $content = json_decode($response->getBody()->getContents(), true) ?? [];
+            // json_decode はスカラーも返しうる。?? はスカラーを拾わないため is_array で確実に配列化する。
+            $decoded = json_decode((string) $response->getBody(), true);
+            $content = is_array($decoded) ? $decoded : [];
 
             if ($statusCode >= 400) {
                 $this->logger->error('EcAuth API error', [
@@ -289,7 +281,7 @@ class EcAuthApiClient
                 'status' => $statusCode,
                 'data' => $content,
             ];
-        } catch (\Exception $e) {
+        } catch (ClientExceptionInterface $e) {
             $this->logger->error('EcAuth API request failed', [
                 'path' => $path,
                 'error' => $e->getMessage(),

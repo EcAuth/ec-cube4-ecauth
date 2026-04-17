@@ -5,22 +5,38 @@ namespace Plugin\EcAuthLogin43\Controller\Admin;
 use Eccube\Controller\AbstractController;
 use Plugin\EcAuthLogin43\Form\Type\Admin\ConfigType;
 use Plugin\EcAuthLogin43\Repository\ConfigRepository;
+use Plugin\EcAuthLogin43\Service\ClientResolveService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ConfigController extends AbstractController
 {
-    private const BASE_DOMAIN = '.ec-auth.io';
-
     /**
      * @var ConfigRepository
      */
     protected $configRepository;
 
-    public function __construct(ConfigRepository $configRepository)
-    {
+    /**
+     * @var ClientResolveService
+     */
+    protected $clientResolveService;
+
+    /**
+     * @var TranslatorInterface
+     */
+    protected $translator;
+
+    public function __construct(
+        ConfigRepository $configRepository,
+        ClientResolveService $clientResolveService,
+        TranslatorInterface $translator
+    ) {
         $this->configRepository = $configRepository;
+        $this->clientResolveService = $clientResolveService;
+        $this->translator = $translator;
     }
 
     /**
@@ -32,21 +48,29 @@ class ConfigController extends AbstractController
         $Config = $this->configRepository->get();
         $hasClientSecret = $Config && $Config->getClientSecret() !== null && $Config->getClientSecret() !== '';
 
-        // DB のフル URL からサブドメイン部分を抽出してフォームにセット
-        $subdomain = $this->extractSubdomain($Config ? $Config->getEcauthBaseUrl() : null);
-        if ($subdomain !== null) {
-            $Config->setEcauthBaseUrl($subdomain);
-        }
-
         $form = $this->createForm(ConfigType::class, $Config);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $Config = $form->getData();
 
-            // サブドメインをフル URL に変換して保存
-            $inputSubdomain = $Config->getEcauthBaseUrl();
-            $Config->setEcauthBaseUrl('https://' . $inputSubdomain . self::BASE_DOMAIN);
+            $inputUrl = trim((string) $Config->getEcauthBaseUrl());
+            if ($inputUrl === '') {
+                $resolved = $this->clientResolveService->resolve((string) $Config->getClientId());
+                if (!$resolved['success']) {
+                    $form->get('client_id')->addError(
+                        new FormError($this->translator->trans('ecauth_login43.admin.config.client_resolve.failed')),
+                    );
+
+                    return [
+                        'form' => $form->createView(),
+                        'has_client_secret' => $hasClientSecret,
+                    ];
+                }
+                $Config->setEcauthBaseUrl($resolved['base_url']);
+            } else {
+                $Config->setEcauthBaseUrl(rtrim($inputUrl, '/'));
+            }
 
             $clientSecret = $form->get('client_secret')->getData();
             if ($clientSecret !== null && $clientSecret !== '') {
@@ -64,20 +88,5 @@ class ConfigController extends AbstractController
             'form' => $form->createView(),
             'has_client_secret' => $hasClientSecret,
         ];
-    }
-
-    private function extractSubdomain(?string $baseUrl): ?string
-    {
-        if ($baseUrl === null || $baseUrl === '') {
-            return null;
-        }
-
-        // https://{subdomain}.ec-auth.io からサブドメインを抽出
-        $pattern = '#^https?://(.+)' . preg_quote(self::BASE_DOMAIN, '#') . '/?$#';
-        if (preg_match($pattern, $baseUrl, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
     }
 }
