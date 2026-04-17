@@ -9,6 +9,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Url;
 
 class ConfigType extends AbstractType
 {
@@ -16,8 +17,9 @@ class ConfigType extends AbstractType
     {
         $builder
             ->add('ecauth_base_url', TextType::class, [
+                'required' => false,
                 'constraints' => [
-                    new NotBlank(),
+                    new Url(['protocols' => ['https', 'http']]),
                 ],
             ])
             ->add('client_id', TextType::class, [

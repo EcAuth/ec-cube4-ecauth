@@ -20,25 +20,6 @@
                         <div class="card-body">
                             <div class="row mb-2">
                                 <div class="col-3">
-                                    <span>{{ 'ecauth_login43.admin.config.ecauth_base_url'|trans }}</span>
-                                    <span class="badge badge-primary ml-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
-                                </div>
-                                <div class="col">
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text">https://</span>
-                                        </div>
-                                        {{ form_widget(form.ecauth_base_url) }}
-                                        <div class="input-group-append">
-                                            <span class="input-group-text">.ec-auth.io</span>
-                                        </div>
-                                    </div>
-                                    {{ form_errors(form.ecauth_base_url) }}
-                                    <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.ecauth_base_url.help'|trans }}</p>
-                                </div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-3">
                                     <span>{{ 'ecauth_login43.admin.config.client_id'|trans }}</span>
                                     <span class="badge badge-primary ml-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
                                 </div>
@@ -57,14 +38,38 @@
                                     {{ form_errors(form.client_secret) }}
                                 </div>
                             </div>
-                            <div class="row mb-2">
-                                <div class="col-3">
-                                    <span>{{ 'ecauth_login43.admin.config.rp_id'|trans }}</span>
+                        </div>
+                    </div>
+
+                    <div class="card rounded border-0 mb-4">
+                        <div class="card-header">
+                            <a class="text-decoration-none" data-toggle="collapse" href="#ecauth-advanced-settings" role="button" aria-expanded="false" aria-controls="ecauth-advanced-settings">
+                                <i class="fa fa-caret-right mr-1"></i>
+                                <span>{{ 'ecauth_login43.admin.config.advanced_settings'|trans }}</span>
+                            </a>
+                        </div>
+                        <div id="ecauth-advanced-settings" class="collapse">
+                            <div class="card-body">
+                                <p class="form-text text-muted mb-3">{{ 'ecauth_login43.admin.config.advanced_settings.help'|trans }}</p>
+                                <div class="row mb-2">
+                                    <div class="col-3">
+                                        <span>{{ 'ecauth_login43.admin.config.ecauth_base_url'|trans }}</span>
+                                    </div>
+                                    <div class="col">
+                                        {{ form_widget(form.ecauth_base_url, { attr: { placeholder: 'https://shop1.ec-auth.io' } }) }}
+                                        {{ form_errors(form.ecauth_base_url) }}
+                                        <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.ecauth_base_url.help'|trans }}</p>
+                                    </div>
                                 </div>
-                                <div class="col">
-                                    {{ form_widget(form.rp_id) }}
-                                    {{ form_errors(form.rp_id) }}
-                                    <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.rp_id.help'|trans }}</p>
+                                <div class="row mb-2">
+                                    <div class="col-3">
+                                        <span>{{ 'ecauth_login43.admin.config.rp_id'|trans }}</span>
+                                    </div>
+                                    <div class="col">
+                                        {{ form_widget(form.rp_id) }}
+                                        {{ form_errors(form.rp_id) }}
+                                        <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.rp_id.help'|trans }}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
