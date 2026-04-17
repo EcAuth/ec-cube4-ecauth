@@ -9,8 +9,6 @@ use Psr\Log\LoggerInterface;
 
 class ClientResolveService
 {
-    private const DEFAULT_DISCOVERY_URL = 'https://api.ec-auth.io';
-
     private const CLIENT_RESOLVE_PATH = '/platform/v1/client-resolve';
 
     /**
@@ -28,14 +26,22 @@ class ClientResolveService
      */
     private $logger;
 
+    /**
+     * @var string Discovery エンドポイントの Base URL。
+     *             services.yaml で %env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)% からバインドされる。
+     */
+    private $discoveryUrl;
+
     public function __construct(
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        string $discoveryUrl
     ) {
         $this->httpClient = $httpClient;
         $this->requestFactory = $requestFactory;
         $this->logger = $logger;
+        $this->discoveryUrl = rtrim($discoveryUrl, '/');
     }
 
     /**
@@ -60,7 +66,7 @@ class ClientResolveService
             ];
         }
 
-        $url = $this->getDiscoveryUrl().self::CLIENT_RESOLVE_PATH
+        $url = $this->discoveryUrl.self::CLIENT_RESOLVE_PATH
             .'?'.http_build_query(['client_id' => $clientId]);
 
         $request = $this->requestFactory
@@ -103,19 +109,5 @@ class ClientResolveService
                 'error' => $e->getMessage(),
             ];
         }
-    }
-
-    /**
-     * Discovery エンドポイントの Base URL を取得する。
-     * 環境変数 ECAUTH_CLIENT_RESOLVE_URL で上書き可能（ステージング・開発環境用）。
-     */
-    private function getDiscoveryUrl(): string
-    {
-        $override = getenv('ECAUTH_CLIENT_RESOLVE_URL');
-        if ($override !== false && $override !== '') {
-            return rtrim($override, '/');
-        }
-
-        return self::DEFAULT_DISCOVERY_URL;
     }
 }

@@ -1,5 +1,8 @@
 parameters:
     ecauth_auth_js_version: 'latest'
+    # Client Resolve API の Discovery URL デフォルト値。
+    # 環境変数 ECAUTH_CLIENT_RESOLVE_URL が設定されていればそちらが優先される。
+    ecauth_default_discovery_url: 'https://api.ec-auth.io'
 
 services:
     Plugin\EcAuthLogin43\:
@@ -9,6 +12,7 @@ services:
         autoconfigure: true
         bind:
             $ecauth_auth_js_version: '%ecauth_auth_js_version%'
+            $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
 
     # PSR-18 HTTP クライアント
     # EC-CUBE 4.2+ は本体が guzzlehttp/guzzle:^7 を依存として持つため Guzzle にエイリアス。
