@@ -2,7 +2,9 @@
 
 namespace Plugin\EcAuthLogin43\Service;
 
-use GuzzleHttp\Client;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 class ClientResolveService
@@ -12,12 +14,27 @@ class ClientResolveService
     private const CLIENT_RESOLVE_PATH = '/platform/v1/client-resolve';
 
     /**
+     * @var ClientInterface
+     */
+    private $httpClient;
+
+    /**
+     * @var RequestFactoryInterface
+     */
+    private $requestFactory;
+
+    /**
      * @var LoggerInterface
      */
     private $logger;
 
-    public function __construct(LoggerInterface $logger)
-    {
+    public function __construct(
+        ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        LoggerInterface $logger,
+    ) {
+        $this->httpClient = $httpClient;
+        $this->requestFactory = $requestFactory;
         $this->logger = $logger;
     }
 
@@ -43,20 +60,17 @@ class ClientResolveService
             ];
         }
 
-        $url = $this->getDiscoveryUrl().self::CLIENT_RESOLVE_PATH;
-        $client = new Client();
+        $url = $this->getDiscoveryUrl().self::CLIENT_RESOLVE_PATH
+            .'?'.http_build_query(['client_id' => $clientId]);
+
+        $request = $this->requestFactory
+            ->createRequest('GET', $url)
+            ->withHeader('Accept', 'application/json');
 
         try {
-            $response = $client->request('GET', $url, [
-                'query' => ['client_id' => $clientId],
-                'headers' => [
-                    'Accept' => 'application/json',
-                ],
-                'http_errors' => false,
-                'timeout' => 10,
-            ]);
+            $response = $this->httpClient->sendRequest($request);
             $statusCode = $response->getStatusCode();
-            $content = json_decode($response->getBody()->getContents(), true) ?? [];
+            $content = json_decode((string) $response->getBody(), true) ?? [];
 
             if ($statusCode === 200 && isset($content['tenant_name'], $content['base_url'])) {
                 return [
@@ -78,7 +92,7 @@ class ClientResolveService
                 'status' => $statusCode,
                 'error' => $content['error'] ?? 'unknown_error',
             ];
-        } catch (\Exception $e) {
+        } catch (ClientExceptionInterface $e) {
             $this->logger->error('EcAuth client-resolve request failed', [
                 'error' => $e->getMessage(),
             ]);
