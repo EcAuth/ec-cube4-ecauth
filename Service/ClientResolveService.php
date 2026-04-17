@@ -76,7 +76,9 @@ class ClientResolveService
         try {
             $response = $this->httpClient->sendRequest($request);
             $statusCode = $response->getStatusCode();
-            $content = json_decode((string) $response->getBody(), true) ?? [];
+            // json_decode はスカラーも返しうる。?? はスカラーを拾わないため is_array で確実に配列化する。
+            $decoded = json_decode((string) $response->getBody(), true);
+            $content = is_array($decoded) ? $decoded : [];
 
             if ($statusCode === 200 && isset($content['tenant_name'], $content['base_url'])) {
                 return [
