@@ -4,6 +4,9 @@ const ADMIN_URL = '/admin';
 const LOGIN_ID = process.env.ADMIN_LOGIN_ID || 'admin';
 const PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 
+const ADVANCED_TOGGLE = 'button[data-toggle="collapse"][data-target="#ecauth-advanced-settings"]';
+const ADVANCED_PANEL = '#ecauth-advanced-settings';
+
 test.describe('プラグイン設定画面', () => {
   test.beforeEach(async ({ page }) => {
     // 管理画面ログイン
@@ -27,14 +30,13 @@ test.describe('プラグイン設定画面', () => {
     await expect(page.locator('input[name="config[client_secret]"]')).toBeVisible();
 
     // 高度な設定は折りたたまれている
-    const advanced = page.locator('#ecauth-advanced-settings');
-    await expect(advanced).not.toBeVisible();
+    await expect(page.locator(ADVANCED_PANEL)).not.toHaveClass(/show/);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).not.toBeVisible();
     await expect(page.locator('input[name="config[rp_id]"]')).not.toBeVisible();
 
     // トグルをクリックすると展開される
-    await page.click('a[data-toggle="collapse"][href="#ecauth-advanced-settings"]');
-    await expect(advanced).toBeVisible();
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).toBeVisible();
   });
 
@@ -45,7 +47,8 @@ test.describe('プラグイン設定画面', () => {
     await page.fill('input[name="config[client_secret]"]', 'test-client-secret');
 
     // 高度な設定を展開して URL を入力（resolve をスキップ）
-    await page.click('a[data-toggle="collapse"][href="#ecauth-advanced-settings"]');
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
     await page.fill('input[name="config[ecauth_base_url]"]', 'https://auth.example.com');
 
     await page.click('button[type="submit"]');
@@ -56,7 +59,8 @@ test.describe('プラグイン設定画面', () => {
     // 値が永続化されていることを確認
     await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
     await expect(page.locator('input[name="config[client_id]"]')).toHaveValue('test-client-id');
-    await page.click('a[data-toggle="collapse"][href="#ecauth-advanced-settings"]');
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue('https://auth.example.com');
   });
 });

@@ -32,7 +32,7 @@ class ConfigController extends AbstractController
     public function __construct(
         ConfigRepository $configRepository,
         ClientResolveService $clientResolveService,
-        TranslatorInterface $translator
+        TranslatorInterface $translator,
     ) {
         $this->configRepository = $configRepository;
         $this->clientResolveService = $clientResolveService;
@@ -59,7 +59,7 @@ class ConfigController extends AbstractController
                 $resolved = $this->clientResolveService->resolve((string) $Config->getClientId());
                 if (!$resolved['success']) {
                     $form->get('client_id')->addError(
-                        new FormError($this->translator->trans('ecauth_login43.admin.config.client_resolve.failed'))
+                        new FormError($this->translator->trans('ecauth_login43.admin.config.client_resolve.failed')),
                     );
 
                     return [
