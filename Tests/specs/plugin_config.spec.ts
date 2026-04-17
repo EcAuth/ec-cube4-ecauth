@@ -4,7 +4,7 @@ const ADMIN_URL = '/admin';
 const LOGIN_ID = process.env.ADMIN_LOGIN_ID || 'admin';
 const PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 
-const ADVANCED_TOGGLE = 'button[data-toggle="collapse"][data-target="#ecauth-advanced-settings"]';
+const ADVANCED_TOGGLE = 'button[data-bs-toggle="collapse"][data-bs-target="#ecauth-advanced-settings"]';
 const ADVANCED_PANEL = '#ecauth-advanced-settings';
 
 test.describe('プラグイン設定画面', () => {
