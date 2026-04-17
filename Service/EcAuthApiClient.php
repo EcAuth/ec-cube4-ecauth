@@ -42,7 +42,7 @@ class EcAuthApiClient
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
-        LoggerInterface $logger,
+        LoggerInterface $logger
     ) {
         $this->configRepository = $configRepository;
         $this->httpClient = $httpClient;

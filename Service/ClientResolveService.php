@@ -31,7 +31,7 @@ class ClientResolveService
     public function __construct(
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
-        LoggerInterface $logger,
+        LoggerInterface $logger
     ) {
         $this->httpClient = $httpClient;
         $this->requestFactory = $requestFactory;

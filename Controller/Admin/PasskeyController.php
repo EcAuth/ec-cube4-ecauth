@@ -30,7 +30,7 @@ class PasskeyController extends AbstractController
     public function __construct(
         EcAuthApiClient $apiClient,
         PasskeyAuthService $passkeyAuthService,
-        string $ecauth_auth_js_version,
+        string $ecauth_auth_js_version
     ) {
         $this->apiClient = $apiClient;
         $this->passkeyAuthService = $passkeyAuthService;

@@ -32,7 +32,7 @@ class ConfigController extends AbstractController
     public function __construct(
         ConfigRepository $configRepository,
         ClientResolveService $clientResolveService,
-        TranslatorInterface $translator,
+        TranslatorInterface $translator
     ) {
         $this->configRepository = $configRepository;
         $this->clientResolveService = $clientResolveService;

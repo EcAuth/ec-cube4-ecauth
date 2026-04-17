@@ -24,7 +24,8 @@ return (new PhpCsFixer\Config())
         'no_unused_imports' => true,
         'ordered_imports' => ['sort_algorithm' => 'alpha'],
         'single_quote' => true,
-        'trailing_comma_in_multiline' => ['elements' => ['arrays', 'arguments', 'parameters']],
+        // parameters は PHP 8.0+ のため除外し PHP 7.4 での動作互換を維持
+        'trailing_comma_in_multiline' => ['elements' => ['arrays', 'arguments']],
         'blank_line_before_statement' => [
             'statements' => ['return'],
         ],
