@@ -82,12 +82,23 @@ class PasskeyAuthService
             return $subject;
         }
 
+        // Symfony のセキュリティトークンから取得した $Member は、セッションから
+        // デシリアライズされた detached entity の可能性がある。その場合 flush しても
+        // ecauth_subject カラムが DB に書き戻されないため、ID で再取得して managed な
+        // インスタンスを変更する。
+        $ManagedMember = $this->memberRepository->find($Member->getId());
+        if ($ManagedMember === null) {
+            throw new \RuntimeException('Member not found for ensureB2BUser: id='.$Member->getId());
+        }
+
         $subject = $this->generateUuidV4();
+        $ManagedMember->setEcauthSubject($subject);
         $Member->setEcauthSubject($subject);
         $this->entityManager->flush();
 
         $this->logger->info('Generated ecauth_subject for Member', [
-            'member_id' => $Member->getId(),
+            'member_id' => $ManagedMember->getId(),
+            'ecauth_subject' => $subject,
         ]);
 
         return $subject;
@@ -120,6 +131,8 @@ class PasskeyAuthService
         if ($tokenResult['status'] !== 200) {
             $this->logger->error('EcAuth token exchange failed', [
                 'status' => $tokenResult['status'],
+                'redirect_uri' => $redirectUri,
+                'response' => $tokenResult['data'] ?? null,
             ]);
 
             return null;
@@ -130,7 +143,9 @@ class PasskeyAuthService
         // ID Token から sub クレームを取得
         $idToken = $tokenData['id_token'] ?? null;
         if ($idToken === null) {
-            $this->logger->error('EcAuth token response missing id_token');
+            $this->logger->error('EcAuth token response missing id_token', [
+                'response_keys' => is_array($tokenData) ? array_keys($tokenData) : null,
+            ]);
 
             return null;
         }
