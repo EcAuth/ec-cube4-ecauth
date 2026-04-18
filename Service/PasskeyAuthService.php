@@ -148,14 +148,29 @@ class PasskeyAuthService
         }
 
         // ecauth_subject で Member を検索
-        $Member = $this->memberRepository->findOneBy(['ecauth_subject' => $b2bSubject]);
-        if ($Member === null) {
+        // MemberTrait の UNIQUE 制約で通常 1 件に限定されるが、
+        // 万一複数ヒットした場合（過去の reconcile バグや直接 SQL 書き込み等で
+        // データが壊れている状態）は他人のセッションを張らないよう拒否する。
+        $members = $this->memberRepository->findBy(['ecauth_subject' => $b2bSubject]);
+        if (count($members) === 0) {
             $this->logger->warning('Member not found for ecauth_subject', [
                 'ecauth_subject' => $b2bSubject,
             ]);
 
             return null;
         }
+        if (count($members) > 1) {
+            $this->logger->critical('Ambiguous ecauth_subject binding; refusing to establish session', [
+                'ecauth_subject' => $b2bSubject,
+                'member_count' => count($members),
+                'member_ids' => array_map(static function ($m) {
+                    return $m->getId();
+                }, $members),
+            ]);
+
+            return null;
+        }
+        $Member = $members[0];
 
         // Access Token をセッションに保存
         $accessToken = $tokenData['access_token'] ?? null;
