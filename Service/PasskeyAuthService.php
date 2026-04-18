@@ -198,6 +198,64 @@ class PasskeyAuthService
     }
 
     /**
+     * EcAuth の register/options レスポンスに含まれる user.id (base64url の b2b_subject) を
+     * Member.ecauth_subject と突き合わせ、異なっていれば EcAuth 側の値で上書きする。
+     *
+     * EcAuth は /v1/b2b/passkey/register/options で渡された b2b_subject が存在しない場合、
+     * external_id で既存ユーザーを検索するフォールバックがある。そのため、プラグインが
+     * ensureB2BUser で生成した UUID とは別の subject に解決されることがあり、その状態で
+     * 登録を続行すると ID Token の sub と dtb_member.ecauth_subject が一致せず
+     * パスキーログイン時に Member not found になる。
+     *
+     * @param array<string,mixed> $options EcAuth が返した options（user.id を含む）
+     */
+    public function reconcileEcauthSubjectFromOptions(Member $Member, array $options): void
+    {
+        $encodedUserId = $options['user']['id'] ?? null;
+        if (!is_string($encodedUserId) || $encodedUserId === '') {
+            return;
+        }
+        $resolved = $this->base64UrlDecode($encodedUserId);
+        if ($resolved === null || $resolved === '') {
+            return;
+        }
+        $current = $Member->getEcauthSubject();
+        if ($current === $resolved) {
+            return;
+        }
+
+        $ManagedMember = $this->memberRepository->find($Member->getId());
+        if ($ManagedMember === null) {
+            $this->logger->warning('Failed to reconcile ecauth_subject: managed Member not found', [
+                'member_id' => $Member->getId(),
+            ]);
+
+            return;
+        }
+
+        $ManagedMember->setEcauthSubject($resolved);
+        $Member->setEcauthSubject($resolved);
+        $this->entityManager->flush();
+
+        $this->logger->info('Reconciled ecauth_subject from EcAuth register/options response', [
+            'member_id' => $ManagedMember->getId(),
+            'previous_subject' => $current,
+            'resolved_subject' => $resolved,
+        ]);
+    }
+
+    private function base64UrlDecode(string $input): ?string
+    {
+        $remainder = strlen($input) % 4;
+        if ($remainder !== 0) {
+            $input .= str_repeat('=', 4 - $remainder);
+        }
+        $decoded = base64_decode(strtr($input, '-_', '+/'), true);
+
+        return $decoded === false ? null : $decoded;
+    }
+
+    /**
      * Config の rp_id またはリクエストホスト名を返す。
      *
      * @param Request $request

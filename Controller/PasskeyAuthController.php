@@ -154,6 +154,14 @@ class PasskeyAuthController extends AbstractController
         // EcAuth API は { session_id, options: {...} } を返すので、options をフラット化して返す
         $options = $data['options'] ?? [];
 
+        // EcAuth が external_id で既存ユーザーに解決した場合は options.user.id に
+        // その subject が入る。送信した b2b_subject と異なる場合は Member に反映する
+        // (そうしないと ID Token の sub と dtb_member.ecauth_subject がずれて
+        // パスキーログイン後のコールバックで Member not found になる)。
+        if (is_array($options)) {
+            $this->passkeyAuthService->reconcileEcauthSubjectFromOptions($Member, $options);
+        }
+
         return $this->json($options);
     }
 
