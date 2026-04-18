@@ -82,22 +82,12 @@ class PasskeyAuthService
             return $subject;
         }
 
-        // Symfony のセキュリティトークンから取得した $Member は、セッションから
-        // デシリアライズされた detached entity の可能性がある。その場合 flush しても
-        // ecauth_subject カラムが DB に書き戻されないため、ID で再取得して managed な
-        // インスタンスを変更する。
-        $ManagedMember = $this->memberRepository->find($Member->getId());
-        if ($ManagedMember === null) {
-            throw new \RuntimeException('Member not found for ensureB2BUser: id='.$Member->getId());
-        }
-
         $subject = $this->generateUuidV4();
-        $ManagedMember->setEcauthSubject($subject);
         $Member->setEcauthSubject($subject);
         $this->entityManager->flush();
 
         $this->logger->info('Generated ecauth_subject for Member', [
-            'member_id' => $ManagedMember->getId(),
+            'member_id' => $Member->getId(),
             'ecauth_subject' => $subject,
         ]);
 
@@ -224,21 +214,11 @@ class PasskeyAuthService
             return;
         }
 
-        $ManagedMember = $this->memberRepository->find($Member->getId());
-        if ($ManagedMember === null) {
-            $this->logger->warning('Failed to reconcile ecauth_subject: managed Member not found', [
-                'member_id' => $Member->getId(),
-            ]);
-
-            return;
-        }
-
-        $ManagedMember->setEcauthSubject($resolved);
         $Member->setEcauthSubject($resolved);
         $this->entityManager->flush();
 
         $this->logger->info('Reconciled ecauth_subject from EcAuth register/options response', [
-            'member_id' => $ManagedMember->getId(),
+            'member_id' => $Member->getId(),
             'previous_subject' => $current,
             'resolved_subject' => $resolved,
         ]);
