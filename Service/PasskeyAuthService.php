@@ -88,6 +88,7 @@ class PasskeyAuthService
 
         $this->logger->info('Generated ecauth_subject for Member', [
             'member_id' => $Member->getId(),
+            'ecauth_subject' => $subject,
         ]);
 
         return $subject;
@@ -116,10 +117,23 @@ class PasskeyAuthService
         }
 
         // トークン交換
+        // レスポンス本文には access_token / id_token / refresh_token 等が含まれ得る。
+        // 失敗時でも provider 実装によっては部分的な値が混入する可能性があるため、
+        // ここでは body 全体ではなく OAuth 標準のエラーフィールド + キー一覧のみ出す。
+        // 完全な redact 済みレスポンスは EcAuthApiClient::sendAndDecode 側で別途記録される。
         $tokenResult = $this->apiClient->exchangeToken($code, $redirectUri);
         if ($tokenResult['status'] !== 200) {
+            $response = $tokenResult['data'] ?? null;
             $this->logger->error('EcAuth token exchange failed', [
                 'status' => $tokenResult['status'],
+                'redirect_uri' => $redirectUri,
+                'response_error' => is_array($response) && isset($response['error']) && is_scalar($response['error'])
+                    ? (string) $response['error']
+                    : null,
+                'response_error_description' => is_array($response) && isset($response['error_description']) && is_scalar($response['error_description'])
+                    ? (string) $response['error_description']
+                    : null,
+                'response_keys' => is_array($response) ? array_keys($response) : null,
             ]);
 
             return null;
@@ -130,7 +144,9 @@ class PasskeyAuthService
         // ID Token から sub クレームを取得
         $idToken = $tokenData['id_token'] ?? null;
         if ($idToken === null) {
-            $this->logger->error('EcAuth token response missing id_token');
+            $this->logger->error('EcAuth token response missing id_token', [
+                'response_keys' => is_array($tokenData) ? array_keys($tokenData) : null,
+            ]);
 
             return null;
         }
@@ -143,14 +159,29 @@ class PasskeyAuthService
         }
 
         // ecauth_subject で Member を検索
-        $Member = $this->memberRepository->findOneBy(['ecauth_subject' => $b2bSubject]);
-        if ($Member === null) {
+        // MemberTrait の UNIQUE 制約で通常 1 件に限定されるが、
+        // 万一複数ヒットした場合（過去の reconcile バグや直接 SQL 書き込み等で
+        // データが壊れている状態）は他人のセッションを張らないよう拒否する。
+        $members = $this->memberRepository->findBy(['ecauth_subject' => $b2bSubject]);
+        if (count($members) === 0) {
             $this->logger->warning('Member not found for ecauth_subject', [
                 'ecauth_subject' => $b2bSubject,
             ]);
 
             return null;
         }
+        if (count($members) > 1) {
+            $this->logger->critical('Ambiguous ecauth_subject binding; refusing to establish session', [
+                'ecauth_subject' => $b2bSubject,
+                'member_count' => count($members),
+                'member_ids' => array_map(static function ($m) {
+                    return $m->getId();
+                }, $members),
+            ]);
+
+            return null;
+        }
+        $Member = $members[0];
 
         // Access Token をセッションに保存
         $accessToken = $tokenData['access_token'] ?? null;
@@ -180,6 +211,63 @@ class PasskeyAuthService
     public function verifyPassword(Member $Member, string $password): bool
     {
         return $this->passwordHasher->isPasswordValid($Member, $password);
+    }
+
+    /**
+     * EcAuth の register/options レスポンスに含まれる user.id (base64url の b2b_subject) を
+     * Member.ecauth_subject と突き合わせ、異なっていれば EcAuth 側の値で上書きする。
+     *
+     * EcAuth は /v1/b2b/passkey/register/options で渡された b2b_subject が存在しない場合、
+     * external_id で既存ユーザーを検索するフォールバックがある。そのため、プラグインが
+     * ensureB2BUser で生成した UUID とは別の subject に解決されることがあり、その状態で
+     * 登録を続行すると ID Token の sub と dtb_member.ecauth_subject が一致せず
+     * パスキーログイン時に Member not found になる。
+     *
+     * @param array<string,mixed> $options EcAuth が返した options（user.id を含む）
+     */
+    public function reconcileEcauthSubjectFromOptions(Member $Member, array $options): void
+    {
+        $encodedUserId = $options['user']['id'] ?? null;
+        if (!is_string($encodedUserId) || $encodedUserId === '') {
+            return;
+        }
+        $resolved = $this->base64UrlDecode($encodedUserId);
+        if ($resolved === null || $resolved === '') {
+            return;
+        }
+        // EcAuth は b2b_subject を UUID v4 として発行する規約のため、想定外フォーマットが
+        // 返ってきた場合は dtb_member.ecauth_subject (UNIQUE 制約あり) を壊す前に弾く。
+        if (!preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i', $resolved)) {
+            $this->logger->warning('Invalid ecauth_subject format in EcAuth register/options response; skipping reconcile', [
+                'member_id' => $Member->getId(),
+            ]);
+
+            return;
+        }
+        $current = $Member->getEcauthSubject();
+        if ($current === $resolved) {
+            return;
+        }
+
+        $Member->setEcauthSubject($resolved);
+        $this->entityManager->flush();
+
+        $this->logger->info('Reconciled ecauth_subject from EcAuth register/options response', [
+            'member_id' => $Member->getId(),
+            'previous_subject' => $current,
+            'resolved_subject' => $resolved,
+        ]);
+    }
+
+    private function base64UrlDecode(string $input): ?string
+    {
+        $remainder = strlen($input) % 4;
+        if ($remainder !== 0) {
+            $input .= str_repeat('=', 4 - $remainder);
+        }
+        $decoded = base64_decode(strtr($input, '-_', '+/'), true);
+
+        return $decoded === false ? null : $decoded;
     }
 
     /**
