@@ -235,6 +235,15 @@ class PasskeyAuthService
         if ($resolved === null || $resolved === '') {
             return;
         }
+        // EcAuth は b2b_subject を UUID v4 として発行する規約のため、想定外フォーマットが
+        // 返ってきた場合は dtb_member.ecauth_subject (UNIQUE 制約あり) を壊す前に弾く。
+        if (!preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i', $resolved)) {
+            $this->logger->warning('Invalid ecauth_subject format in EcAuth register/options response; skipping reconcile', [
+                'member_id' => $Member->getId(),
+            ]);
+
+            return;
+        }
         $current = $Member->getEcauthSubject();
         if ($current === $resolved) {
             return;
