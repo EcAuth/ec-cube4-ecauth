@@ -117,12 +117,23 @@ class PasskeyAuthService
         }
 
         // トークン交換
+        // レスポンス本文には access_token / id_token / refresh_token 等が含まれ得る。
+        // 失敗時でも provider 実装によっては部分的な値が混入する可能性があるため、
+        // ここでは body 全体ではなく OAuth 標準のエラーフィールド + キー一覧のみ出す。
+        // 完全な redact 済みレスポンスは EcAuthApiClient::sendAndDecode 側で別途記録される。
         $tokenResult = $this->apiClient->exchangeToken($code, $redirectUri);
         if ($tokenResult['status'] !== 200) {
+            $response = $tokenResult['data'] ?? null;
             $this->logger->error('EcAuth token exchange failed', [
                 'status' => $tokenResult['status'],
                 'redirect_uri' => $redirectUri,
-                'response' => $tokenResult['data'] ?? null,
+                'response_error' => is_array($response) && isset($response['error']) && is_scalar($response['error'])
+                    ? (string) $response['error']
+                    : null,
+                'response_error_description' => is_array($response) && isset($response['error_description']) && is_scalar($response['error_description'])
+                    ? (string) $response['error_description']
+                    : null,
+                'response_keys' => is_array($response) ? array_keys($response) : null,
             ]);
 
             return null;
