@@ -65,6 +65,10 @@ class PasskeyController extends AbstractController
             } else {
                 $error = 'ecauth_login43.admin.passkey.config_required';
             }
+        } else {
+            // /v1/b2b/passkey/list は Bearer Token 認証必須のため、パスワードログインした
+            // 管理者には access token が無く一覧を取得できない。UI 上で案内する。
+            $error = 'ecauth_login43.admin.passkey.login_required';
         }
 
         return [
