@@ -43,6 +43,7 @@ ecauth_login43.admin.passkey.register.success: パスキーを登録しました
 ecauth_login43.admin.passkey.register.error: パスキーの登録に失敗しました。
 ecauth_login43.admin.passkey.config_required: EcAuth の設定を先に完了してください。
 ecauth_login43.admin.passkey.login_required: パスキー一覧を表示するには、一旦ログアウトしてパスキーでログインしてください。
+ecauth_login43.admin.passkey.current: ログイン中
 
 # ログイン画面
 ecauth_login43.admin.login.passkey_button: パスキーでログイン

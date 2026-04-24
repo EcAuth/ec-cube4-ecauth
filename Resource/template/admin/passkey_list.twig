@@ -163,8 +163,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </thead>
                                 <tbody>
                                     {% for passkey in passkeys %}
-                                        <tr>
-                                            <td>{{ passkey.device_name|default('-') }}</td>
+                                        {% set is_current = current_credential_id is not null and passkey.credential_id == current_credential_id %}
+                                        <tr{% if is_current %} class="table-active"{% endif %}>
+                                            <td>
+                                                {{ passkey.device_name|default('-') }}
+                                                {% if is_current %}
+                                                    <span class="badge bg-primary ms-1">{{ 'ecauth_login43.admin.passkey.current'|trans }}</span>
+                                                {% endif %}
+                                            </td>
                                             <td>{{ passkey.created_at ? passkey.created_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
                                             <td>{{ passkey.last_used_at ? passkey.last_used_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
                                             <td class="text-right">

@@ -108,6 +108,16 @@ class PasskeyAuthController extends AbstractController
             return $this->json(['error' => 'Authentication failed'], $result['status']);
         }
 
+        // パスキー一覧画面で「使用中」強調表示するため、認証に使用した
+        // credential_id (WebAuthn assertion の id は Base64Url 文字列で、
+        // EcAuth の list API が返す credential_id と同一形式) をセッションに
+        // 保存する。コールバック後も PasskeyAuthService::handleCallback の
+        // session->migrate(true) でデータは引き継がれる。
+        $credentialId = $data['response']['id'] ?? null;
+        if (is_string($credentialId) && $credentialId !== '') {
+            $session->set('ecauth_current_credential_id', $credentialId);
+        }
+
         return $this->json($result['data']);
     }
 

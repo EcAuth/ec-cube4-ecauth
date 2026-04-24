@@ -54,6 +54,7 @@ class PasskeyController extends AbstractController
     {
         $session = $request->getSession();
         $accessToken = $session->get('ecauth_access_token');
+        $currentCredentialId = $session->get('ecauth_current_credential_id');
 
         $passkeys = [];
         $error = null;
@@ -76,6 +77,7 @@ class PasskeyController extends AbstractController
             'error' => $error,
             'ecauth_auth_js_version' => $this->authJsVersion,
             'eccube_timezone' => $this->eccubeTimezone,
+            'current_credential_id' => $currentCredentialId,
         ];
     }
 
