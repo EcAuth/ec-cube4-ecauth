@@ -74,6 +74,20 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="card rounded border-0 mb-4">
+                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.next_step.header'|trans }}</span></div>
+                        <div class="card-body">
+                            {% if has_client_secret %}
+                                <p class="mb-3">{{ 'ecauth_login43.admin.config.next_step.description.ready'|trans }}</p>
+                                <a class="btn btn-ec-regular" href="{{ url('ecauth_login43_admin_passkey') }}">
+                                    <i class="fa fa-key me-1"></i>{{ 'ecauth_login43.admin.config.next_step.link'|trans }}
+                                </a>
+                            {% else %}
+                                <p class="mb-0 text-muted">{{ 'ecauth_login43.admin.config.next_step.description.pending'|trans }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
