@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             <td class="text-right">
                                                 <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credential_id }) }}" style="display:inline">
                                                     <input type="hidden" name="_method" value="DELETE">
-                                                    <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('_token') }}">
                                                     <button type="submit" class="btn btn-ec-actionIcon"
                                                             onclick="return confirm('{{ 'ecauth_login43.admin.passkey.delete.confirm'|trans }}')">
                                                         <i class="fa fa-close fa-lg text-secondary"></i>
