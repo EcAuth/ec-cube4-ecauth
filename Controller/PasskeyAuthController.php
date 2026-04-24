@@ -192,6 +192,9 @@ class PasskeyAuthController extends AbstractController
         }
 
         $deviceName = $data['device_name'] ?? null;
+        if ($deviceName === null || $deviceName === '') {
+            $deviceName = $this->resolveDeviceNameFromUserAgent($request->headers->get('User-Agent'));
+        }
 
         $result = $this->apiClient->registerVerify($sessionId, $data['response'], $deviceName);
 
@@ -215,5 +218,48 @@ class PasskeyAuthController extends AbstractController
         if (array_key_exists('clientExtensionResults', $response) && is_array($response['clientExtensionResults']) && empty($response['clientExtensionResults'])) {
             $response['clientExtensionResults'] = new \stdClass();
         }
+    }
+
+    /**
+     * User-Agent ヘッダから人間可読のデバイス名を推定する。
+     * "Chrome on Windows" 形式。解析に失敗した場合は "Unknown device" を返す。
+     */
+    private function resolveDeviceNameFromUserAgent(?string $userAgent): string
+    {
+        if ($userAgent === null || $userAgent === '') {
+            return 'Unknown device';
+        }
+
+        // ブラウザ判定 (Edge は Chrome を含むので先に判定)
+        $browser = 'Browser';
+        if (strpos($userAgent, 'Edg/') !== false || strpos($userAgent, 'Edge/') !== false) {
+            $browser = 'Edge';
+        } elseif (strpos($userAgent, 'OPR/') !== false || strpos($userAgent, 'Opera') !== false) {
+            $browser = 'Opera';
+        } elseif (strpos($userAgent, 'Firefox/') !== false) {
+            $browser = 'Firefox';
+        } elseif (strpos($userAgent, 'Chrome/') !== false) {
+            $browser = 'Chrome';
+        } elseif (strpos($userAgent, 'Safari/') !== false) {
+            $browser = 'Safari';
+        }
+
+        // OS 判定 (iPadOS / iOS は Mac より先に判定)
+        $os = 'Unknown OS';
+        if (strpos($userAgent, 'iPhone') !== false) {
+            $os = 'iOS';
+        } elseif (strpos($userAgent, 'iPad') !== false) {
+            $os = 'iPadOS';
+        } elseif (strpos($userAgent, 'Android') !== false) {
+            $os = 'Android';
+        } elseif (strpos($userAgent, 'Windows') !== false) {
+            $os = 'Windows';
+        } elseif (strpos($userAgent, 'Mac OS X') !== false || strpos($userAgent, 'Macintosh') !== false) {
+            $os = 'macOS';
+        } elseif (strpos($userAgent, 'Linux') !== false) {
+            $os = 'Linux';
+        }
+
+        return $browser.' on '.$os;
     }
 }
