@@ -54,7 +54,7 @@ class PasskeyController extends AbstractController
         if ($accessToken) {
             $result = $this->apiClient->listPasskeys($accessToken);
             if ($result['status'] === 200) {
-                $passkeys = $result['data']['credentials'] ?? [];
+                $passkeys = $result['data']['passkeys'] ?? [];
             } else {
                 $error = 'ecauth_login43.admin.passkey.config_required';
             }

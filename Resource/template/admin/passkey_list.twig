@@ -164,11 +164,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <tbody>
                                     {% for passkey in passkeys %}
                                         <tr>
-                                            <td>{{ passkey.deviceName|default('-') }}</td>
-                                            <td>{{ passkey.createdAt|default('-') }}</td>
-                                            <td>{{ passkey.lastUsedAt|default('-') }}</td>
+                                            <td>{{ passkey.device_name|default('-') }}</td>
+                                            <td>{{ passkey.created_at|default('-') }}</td>
+                                            <td>{{ passkey.last_used_at|default('-') }}</td>
                                             <td class="text-right">
-                                                <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credentialId }) }}" style="display:inline">
+                                                <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credential_id }) }}" style="display:inline">
                                                     <input type="hidden" name="_method" value="DELETE">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
                                                     <button type="submit" class="btn btn-ec-actionIcon"
