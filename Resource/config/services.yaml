@@ -13,6 +13,7 @@ services:
         bind:
             $ecauth_auth_js_version: '%ecauth_auth_js_version%'
             $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
+            $eccubeTimezone: '%timezone%'
 
     # PSR-18 HTTP クライアント
     # EC-CUBE 4.2+ は本体が guzzlehttp/guzzle:^7 を依存として持つため Guzzle にエイリアス。

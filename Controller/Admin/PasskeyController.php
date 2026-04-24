@@ -27,14 +27,21 @@ class PasskeyController extends AbstractController
      */
     private $authJsVersion;
 
+    /**
+     * @var string
+     */
+    private $eccubeTimezone;
+
     public function __construct(
         EcAuthApiClient $apiClient,
         PasskeyAuthService $passkeyAuthService,
-        string $ecauth_auth_js_version
+        string $ecauth_auth_js_version,
+        string $eccubeTimezone
     ) {
         $this->apiClient = $apiClient;
         $this->passkeyAuthService = $passkeyAuthService;
         $this->authJsVersion = $ecauth_auth_js_version;
+        $this->eccubeTimezone = $eccubeTimezone;
     }
 
     /**
@@ -64,6 +71,7 @@ class PasskeyController extends AbstractController
             'passkeys' => $passkeys,
             'error' => $error,
             'ecauth_auth_js_version' => $this->authJsVersion,
+            'eccube_timezone' => $this->eccubeTimezone,
         ];
     }
 

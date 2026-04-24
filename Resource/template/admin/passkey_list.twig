@@ -165,8 +165,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                     {% for passkey in passkeys %}
                                         <tr>
                                             <td>{{ passkey.device_name|default('-') }}</td>
-                                            <td>{{ passkey.created_at|default('-') }}</td>
-                                            <td>{{ passkey.last_used_at|default('-') }}</td>
+                                            <td>{{ passkey.created_at ? passkey.created_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
+                                            <td>{{ passkey.last_used_at ? passkey.last_used_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
                                             <td class="text-right">
                                                 <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credential_id }) }}" style="display:inline">
                                                     <input type="hidden" name="_method" value="DELETE">
