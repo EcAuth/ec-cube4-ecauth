@@ -157,10 +157,14 @@ test.describe.serial('E2E: パスキーログイン後の一覧表示', () => {
     await page.click('#ecauth-password-confirm');
     const verifyRes = await verifyPromise;
     expect(verifyRes.status()).toBe(200);
+    // register/verify 成功後は JS 側で alert → window.location.reload() が走る。
+    // 先行の load は既に完了しているため waitForLoadState('load') では待てない。
+    // reload ナビゲーションとその後のネットワーク沈静化を明示的に待つ。
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 
     // 3. ログアウト → パスキーログイン
     await page.goto(`${ADMIN_URL}/logout`);
-    await page.goto(`${ADMIN_URL}/login`);
+    await page.waitForURL(/\/admin\/login/, { timeout: 15000 });
     await Promise.all([
       page.waitForURL(/\/admin\/?$/, { timeout: 30000 }),
       page.locator('#ecauth-passkey-login').click(),
