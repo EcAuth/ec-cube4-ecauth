@@ -40,7 +40,13 @@ class ConfigController extends AbstractController
     }
 
     /**
+     * EC-CUBE 管理画面のプラグイン一覧 (/admin/store/plugin) で歯車アイコンを
+     * 表示させるため、Container::underscore(Plugin.code) + '_admin_config' という
+     * ルート名規約 (ec_auth_login43_admin_config) でも引けるよう別名を追加する。
+     * 既存箇所は ecauth_login43_admin_config を使い続けるため両方残す。
+     *
      * @Route("/%eccube_admin_route%/ecauth_login43/config", name="ecauth_login43_admin_config")
+     * @Route("/%eccube_admin_route%/ecauth_login43/config", name="ec_auth_login43_admin_config")
      * @Template("@EcAuthLogin43/admin/config.twig")
      */
     public function index(Request $request)
