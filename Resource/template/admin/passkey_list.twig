@@ -163,14 +163,20 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </thead>
                                 <tbody>
                                     {% for passkey in passkeys %}
-                                        <tr>
-                                            <td>{{ passkey.deviceName|default('-') }}</td>
-                                            <td>{{ passkey.createdAt|default('-') }}</td>
-                                            <td>{{ passkey.lastUsedAt|default('-') }}</td>
+                                        {% set is_current = current_credential_id is not null and passkey.credential_id == current_credential_id %}
+                                        <tr{% if is_current %} class="table-active"{% endif %}>
+                                            <td>
+                                                {{ passkey.device_name|default('-') }}
+                                                {% if is_current %}
+                                                    <span class="badge bg-primary ms-1">{{ 'ecauth_login43.admin.passkey.current'|trans }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ passkey.created_at ? passkey.created_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
+                                            <td>{{ passkey.last_used_at ? passkey.last_used_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
                                             <td class="text-right">
-                                                <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credentialId }) }}" style="display:inline">
+                                                <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credential_id }) }}" style="display:inline">
                                                     <input type="hidden" name="_method" value="DELETE">
-                                                    <input type="hidden" name="_token" value="{{ csrf_token('admin') }}">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('_token') }}">
                                                     <button type="submit" class="btn btn-ec-actionIcon"
                                                             onclick="return confirm('{{ 'ecauth_login43.admin.passkey.delete.confirm'|trans }}')">
                                                         <i class="fa fa-close fa-lg text-secondary"></i>

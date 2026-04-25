@@ -27,14 +27,21 @@ class PasskeyController extends AbstractController
      */
     private $authJsVersion;
 
+    /**
+     * @var string
+     */
+    private $eccubeTimezone;
+
     public function __construct(
         EcAuthApiClient $apiClient,
         PasskeyAuthService $passkeyAuthService,
-        string $ecauth_auth_js_version
+        string $ecauth_auth_js_version,
+        string $eccubeTimezone
     ) {
         $this->apiClient = $apiClient;
         $this->passkeyAuthService = $passkeyAuthService;
         $this->authJsVersion = $ecauth_auth_js_version;
+        $this->eccubeTimezone = $eccubeTimezone;
     }
 
     /**
@@ -47,6 +54,7 @@ class PasskeyController extends AbstractController
     {
         $session = $request->getSession();
         $accessToken = $session->get('ecauth_access_token');
+        $currentCredentialId = $session->get('ecauth_current_credential_id');
 
         $passkeys = [];
         $error = null;
@@ -54,16 +62,22 @@ class PasskeyController extends AbstractController
         if ($accessToken) {
             $result = $this->apiClient->listPasskeys($accessToken);
             if ($result['status'] === 200) {
-                $passkeys = $result['data']['credentials'] ?? [];
+                $passkeys = $result['data']['passkeys'] ?? [];
             } else {
                 $error = 'ecauth_login43.admin.passkey.config_required';
             }
+        } else {
+            // /v1/b2b/passkey/list は Bearer Token 認証必須のため、パスワードログインした
+            // 管理者には access token が無く一覧を取得できない。UI 上で案内する。
+            $error = 'ecauth_login43.admin.passkey.login_required';
         }
 
         return [
             'passkeys' => $passkeys,
             'error' => $error,
             'ecauth_auth_js_version' => $this->authJsVersion,
+            'eccube_timezone' => $this->eccubeTimezone,
+            'current_credential_id' => $currentCredentialId,
         ];
     }
 
