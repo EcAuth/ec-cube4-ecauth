@@ -93,6 +93,12 @@ class PasskeyAuthController extends AbstractController
         $state = bin2hex(random_bytes(32));
         $session->set('ecauth_state', $state);
 
+        // PKCE (RFC 7636) の code_verifier を生成してセッションに保存し、
+        // code_challenge のみを EcAuth に送る。verifier はブラウザを一度も経由せず、
+        // コールバック時に PHP 側でトークン交換に使う。
+        $codeVerifier = $this->passkeyAuthService->generateCodeVerifier();
+        $session->set('ecauth_code_verifier', $codeVerifier);
+
         $redirectUri = $this->generateUrl('ecauth_callback', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
         $result = $this->apiClient->authenticateVerify(
@@ -100,10 +106,14 @@ class PasskeyAuthController extends AbstractController
             $redirectUri,
             $state,
             $data['response'],
+            $this->passkeyAuthService->generateCodeChallenge($codeVerifier),
         );
 
         if ($result['status'] !== 200) {
+            // 失敗した verifier を残すと、次回認証時に新しい challenge と食い違って
+            // トークン交換が invalid_grant になる。state と揃えて必ず破棄する。
             $session->remove('ecauth_state');
+            $session->remove('ecauth_code_verifier');
 
             return $this->json(['error' => 'Authentication failed'], $result['status']);
         }

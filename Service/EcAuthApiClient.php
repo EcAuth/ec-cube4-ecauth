@@ -71,8 +71,10 @@ class EcAuthApiClient
      * パスキー認証を検証する。
      *
      * @param array $response WebAuthn assertion response
+     * @param string|null $codeChallenge PKCE (RFC 7636) の code_challenge。指定すると発行される
+     *                                   認可コードに束縛され、トークン交換時に code_verifier が必須になる
      */
-    public function authenticateVerify(string $sessionId, string $redirectUri, ?string $state, array $response): array
+    public function authenticateVerify(string $sessionId, string $redirectUri, ?string $state, array $response, ?string $codeChallenge = null): array
     {
         $body = [
             'session_id' => $sessionId,
@@ -82,6 +84,10 @@ class EcAuthApiClient
         ];
         if ($state !== null) {
             $body['state'] = $state;
+        }
+        if ($codeChallenge !== null) {
+            $body['code_challenge'] = $codeChallenge;
+            $body['code_challenge_method'] = 'S256';
         }
 
         return $this->post('/v1/b2b/passkey/authenticate/verify', $body);
@@ -149,16 +155,24 @@ class EcAuthApiClient
 
     /**
      * 認可コードをトークンに交換する。
+     *
+     * @param string|null $codeVerifier PKCE (RFC 7636) の code_verifier。authenticate/verify で
+     *                                  code_challenge を送った場合は必須
      */
-    public function exchangeToken(string $code, string $redirectUri): array
+    public function exchangeToken(string $code, string $redirectUri, ?string $codeVerifier = null): array
     {
-        return $this->postForm('/v1/token', [
+        $params = [
             'grant_type' => 'authorization_code',
             'code' => $code,
             'redirect_uri' => $redirectUri,
             'client_id' => $this->getClientId(),
             'client_secret' => $this->getClientSecret(),
-        ]);
+        ];
+        if ($codeVerifier !== null) {
+            $params['code_verifier'] = $codeVerifier;
+        }
+
+        return $this->postForm('/v1/token', $params);
     }
 
     private function getClientId(): string

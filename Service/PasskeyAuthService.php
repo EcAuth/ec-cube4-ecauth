@@ -110,10 +110,25 @@ class PasskeyAuthService
         $savedState = $session->get('ecauth_state');
         $session->remove('ecauth_state');
 
+        // PKCE の code_verifier を取り出して使い捨てる。
+        // state 検証より前に取り出すのは、state 不一致で離脱する経路でも
+        // セッションに verifier を残さないため。
+        $savedCodeVerifier = $session->get('ecauth_code_verifier');
+        $session->remove('ecauth_code_verifier');
+        $codeVerifier = is_string($savedCodeVerifier) && $savedCodeVerifier !== '' ? $savedCodeVerifier : null;
+
         if ($savedState === null || !hash_equals($savedState, $state)) {
             $this->logger->warning('EcAuth callback state mismatch');
 
             return null;
+        }
+
+        // state は通ったのに verifier だけ無い場合は、認可コードに束縛された
+        // code_challenge と突き合わせられずトークン交換が invalid_grant になる。
+        // 原因を追えるようここで警告を残す（state 検証後に置くことで、
+        // 単なる期限切れコールバックでの重複警告を避ける）。
+        if ($codeVerifier === null) {
+            $this->logger->warning('EcAuth callback missing code_verifier in session');
         }
 
         // トークン交換
@@ -121,7 +136,7 @@ class PasskeyAuthService
         // 失敗時でも provider 実装によっては部分的な値が混入する可能性があるため、
         // ここでは body 全体ではなく OAuth 標準のエラーフィールド + キー一覧のみ出す。
         // 完全な redact 済みレスポンスは EcAuthApiClient::sendAndDecode 側で別途記録される。
-        $tokenResult = $this->apiClient->exchangeToken($code, $redirectUri);
+        $tokenResult = $this->apiClient->exchangeToken($code, $redirectUri, $codeVerifier);
         if ($tokenResult['status'] !== 200) {
             $response = $tokenResult['data'] ?? null;
             $this->logger->error('EcAuth token exchange failed', [
@@ -259,6 +274,30 @@ class PasskeyAuthService
         ]);
     }
 
+    /**
+     * PKCE (RFC 7636) の code_verifier を生成する。
+     *
+     * RFC 7636 Section 4.1 は 43〜128 文字の unreserved を要求する。
+     * 32 バイトの乱数を base64url した 43 文字はこの下限ちょうどで、
+     * かつ 256bit のエントロピーを持つ。
+     */
+    public function generateCodeVerifier(): string
+    {
+        return $this->base64UrlEncode(random_bytes(32));
+    }
+
+    /**
+     * code_verifier から code_challenge を導出する。
+     *
+     * RFC 7636 Section 4.2: BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
+     * hash() の第3引数 (raw binary) を落とすと hex 文字列をエンコードした別物になり、
+     * EcAuth 側は形式を検証しないためトークン交換まで失敗が露見しない。
+     */
+    public function generateCodeChallenge(string $codeVerifier): string
+    {
+        return $this->base64UrlEncode(hash('sha256', $codeVerifier, true));
+    }
+
     private function base64UrlDecode(string $input): ?string
     {
         $remainder = strlen($input) % 4;
@@ -268,6 +307,11 @@ class PasskeyAuthService
         $decoded = base64_decode(strtr($input, '-_', '+/'), true);
 
         return $decoded === false ? null : $decoded;
+    }
+
+    private function base64UrlEncode(string $raw): string
+    {
+        return rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
     }
 
     /**
