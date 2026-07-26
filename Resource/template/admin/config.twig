@@ -7,6 +7,16 @@
 
 {% form_theme form '@admin/Form/bootstrap_4_horizontal_layout.html.twig' %}
 
+{% block stylesheet %}
+    <style>
+        /* 管理画面の CSS が li { list-style-type: none } を当てているため、
+           申込手順のリストだけ番号を戻す（他の一覧に影響させないよう id でスコープする） */
+        #ecauth-signup-steps li {
+            list-style-type: decimal;
+        }
+    </style>
+{% endblock %}
+
 {% block main %}
     <form role="form" method="post">
 
@@ -15,6 +25,31 @@
         <div class="c-contentsArea__cols">
             <div class="c-contentsArea__primaryCol">
                 <div class="c-primaryCol">
+                    <div class="card rounded border-0 mb-4">
+                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.signup.header'|trans }}</span></div>
+                        <div class="card-body">
+                            <p class="mb-4">{{ 'ecauth_login43.admin.config.signup.intro'|trans }}</p>
+
+                            <p class="fw-bold mb-2">{{ 'ecauth_login43.admin.config.signup.first_time.header'|trans }}</p>
+                            <ol id="ecauth-signup-steps" class="mb-3 ps-4">
+                                <li class="mb-1">{{ 'ecauth_login43.admin.config.signup.first_time.step1'|trans }}</li>
+                                <li class="mb-1">{{ 'ecauth_login43.admin.config.signup.first_time.step2'|trans }}</li>
+                                <li>{{ 'ecauth_login43.admin.config.signup.first_time.step3'|trans }}</li>
+                            </ol>
+                            <a class="btn btn-ec-regular" id="ecauth-signup-link" href="{{ signup_url }}" target="_blank" rel="noopener noreferrer">
+                                <i class="fa fa-external-link me-1"></i>{{ 'ecauth_login43.admin.config.signup.link'|trans }}
+                            </a>
+
+                            <hr class="my-4">
+
+                            <p class="fw-bold mb-2">{{ 'ecauth_login43.admin.config.signup.registered.header'|trans }}</p>
+                            <p class="mb-3">{{ 'ecauth_login43.admin.config.signup.registered.description'|trans }}</p>
+                            <a class="btn btn-ec-regular" id="ecauth-mypage-link" href="{{ mypage_url }}" target="_blank" rel="noopener noreferrer">
+                                <i class="fa fa-external-link me-1"></i>{{ 'ecauth_login43.admin.config.signup.mypage.link'|trans }}
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="card rounded border-0 mb-4">
                         <div class="card-header"><span>{{ 'ecauth_login43.admin.config.header'|trans }}</span></div>
                         <div class="card-body">

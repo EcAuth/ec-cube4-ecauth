@@ -41,6 +41,23 @@ composer rector
 composer cs-check
 ```
 
+**重要**: 静的解析のために `composer install` を実行すると、リポジトリ直下に `vendor/` が生成される。
+`docker-compose.override.yml` はリポジトリ直下を `/plugin` にマウントし、`docker-entrypoint.sh` の
+`eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin` がその `vendor/` ごとプラグインを取り込むため、
+EC-CUBE 本体のオートローダーと衝突して起動に失敗する。
+
+```
+PHP Fatal error: Cannot declare class Composer\Autoload\ClassLoader, because the name is already in use
+                 in /plugin/vendor/composer/ClassLoader.php
+```
+
+**Docker で動かす前に `rm -rf vendor` すること**（`vendor/` は `.gitignore` 済みで、生成物以外は失われない）。
+CI では静的解析ジョブと E2E ジョブが別コンテナのため、この衝突は起きない。
+
+同じ理由（リポジトリ直下がコンテナにマウントされている）で、`docker compose up` すると
+プラグインインストーラが **`composer.json` を minify した 1 行 JSON に書き戻す**。追跡ファイルなので
+`git status` に差分として現れる。コミットに混入させないよう `git checkout -- composer.json` で戻すこと。
+
 ### E2E テスト
 
 ```bash
