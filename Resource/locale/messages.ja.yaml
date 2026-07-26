@@ -1,6 +1,16 @@
 # 設定画面
 ecauth_login43.admin.config.title: EcAuth 設定
 ecauth_login43.admin.config.sub_title: プラグイン設定
+ecauth_login43.admin.config.signup.header: Client ID / Client Secret の取得方法
+ecauth_login43.admin.config.signup.intro: 本プラグインのご利用には、EcAuth が発行する Client ID と Client Secret が必要です。まだお持ちでない場合は、以下の手順で取得してください。管理者 5 ユーザーまで無料でご利用いただけます。
+ecauth_login43.admin.config.signup.first_time.header: はじめて EcAuth をご利用の場合
+ecauth_login43.admin.config.signup.first_time.step1: 下の「EcAuth に申し込む」ボタンから申込フォームを開き、メールアドレスとサイトの情報を入力します。
+ecauth_login43.admin.config.signup.first_time.step2: 入力したメールアドレス宛に確認メールが届きます。メール内のリンクを開くと、EcAuth のアカウントが作成されます。
+ecauth_login43.admin.config.signup.first_time.step3: EcAuth のマイページに Client ID と Client Secret が表示されます。これを下の「EcAuth 接続設定」に入力し、「登録」ボタンを押してください。
+ecauth_login43.admin.config.signup.link: EcAuth に申し込む
+ecauth_login43.admin.config.signup.registered.header: すでにお申し込み済みの場合
+ecauth_login43.admin.config.signup.registered.description: 申込は不要です。EcAuth のマイページを開くと、ご契約中のショップの Client ID と Client Secret を確認できます。Client Secret が分からなくなった場合は、マイページから再発行できます。
+ecauth_login43.admin.config.signup.mypage.link: EcAuth マイページを開く
 ecauth_login43.admin.config.header: EcAuth 接続設定
 ecauth_login43.admin.config.ecauth_base_url: EcAuth URL
 ecauth_login43.admin.config.ecauth_base_url.help: 通常は未入力で構いません。Client ID から自動解決されます。ステージング・開発環境では直接 URL を指定できます。

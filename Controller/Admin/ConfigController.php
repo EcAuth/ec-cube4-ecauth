@@ -29,14 +29,34 @@ class ConfigController extends AbstractController
      */
     protected $translator;
 
+    /**
+     * 申込フォーム (ec-auth.io) の URL。services.yaml の
+     * ecauth_default_signup_url / 環境変数 ECAUTH_SIGNUP_URL で決まる。
+     *
+     * @var string
+     */
+    protected $signupUrl;
+
+    /**
+     * マイページ (ec-auth.io) の URL。services.yaml の
+     * ecauth_default_mypage_url / 環境変数 ECAUTH_MYPAGE_URL で決まる。
+     *
+     * @var string
+     */
+    protected $mypageUrl;
+
     public function __construct(
         ConfigRepository $configRepository,
         ClientResolveService $clientResolveService,
-        TranslatorInterface $translator
+        TranslatorInterface $translator,
+        string $signupUrl,
+        string $mypageUrl
     ) {
         $this->configRepository = $configRepository;
         $this->clientResolveService = $clientResolveService;
         $this->translator = $translator;
+        $this->signupUrl = $signupUrl;
+        $this->mypageUrl = $mypageUrl;
     }
 
     /**
@@ -71,6 +91,8 @@ class ConfigController extends AbstractController
                     return [
                         'form' => $form->createView(),
                         'has_client_secret' => $hasClientSecret,
+                        'signup_url' => $this->signupUrl,
+                        'mypage_url' => $this->mypageUrl,
                     ];
                 }
                 $Config->setEcauthBaseUrl($resolved['base_url']);
@@ -93,6 +115,8 @@ class ConfigController extends AbstractController
         return [
             'form' => $form->createView(),
             'has_client_secret' => $hasClientSecret,
+            'signup_url' => $this->signupUrl,
+            'mypage_url' => $this->mypageUrl,
         ];
     }
 }

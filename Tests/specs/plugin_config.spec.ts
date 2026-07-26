@@ -7,6 +7,11 @@ const PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const ADVANCED_TOGGLE = 'button[data-bs-toggle="collapse"][data-bs-target="#ecauth-advanced-settings"]';
 const ADVANCED_PANEL = '#ecauth-advanced-settings';
 
+// 導線の URL は services.yaml の parameters が既定値で、環境変数で上書きできる。
+// テスト側も同じ解決順にしておく（CI では環境変数未設定なので既定値が使われる）。
+const SIGNUP_URL = process.env.ECAUTH_SIGNUP_URL || 'https://ec-auth.io/signup/';
+const MYPAGE_URL = process.env.ECAUTH_MYPAGE_URL || 'https://ec-auth.io/mypage/';
+
 test.describe('プラグイン設定画面', () => {
   test.beforeEach(async ({ page }) => {
     // 管理画面ログイン
@@ -19,7 +24,34 @@ test.describe('プラグイン設定画面', () => {
 
   test('設定画面にアクセスできる', async ({ page }) => {
     await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
-    await expect(page.locator('text=EcAuth 接続設定')).toBeVisible();
+    // 部分一致だと導線カードの説明文（「下の『EcAuth 接続設定』に入力してください」）にも
+    // マッチして strict mode 違反になるため、カード見出しに完全一致させる
+    await expect(page.getByText('EcAuth 接続設定', { exact: true })).toBeVisible();
+  });
+
+  test('申込・マイページへの導線が表示される', async ({ page }) => {
+    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+
+    // 導線カードは接続設定カードより前（未設定の管理者が最初に目にする位置）に置く
+    await expect(page.locator('.c-primaryCol .card-header').first()).toContainText(
+      'Client ID / Client Secret の取得方法',
+    );
+    // はじめて利用する管理者向けに、申込〜設定までの手順を明示する
+    await expect(page.locator('text=はじめて EcAuth をご利用の場合')).toBeVisible();
+    await expect(page.locator('text=すでにお申し込み済みの場合')).toBeVisible();
+
+    const signup = page.locator('#ecauth-signup-link');
+    await expect(signup).toBeVisible();
+    await expect(signup).toHaveAttribute('href', SIGNUP_URL);
+    // 管理画面を離脱させないよう別タブで開く。target=_blank には rel の付与が必須
+    await expect(signup).toHaveAttribute('target', '_blank');
+    await expect(signup).toHaveAttribute('rel', /noopener/);
+
+    const mypage = page.locator('#ecauth-mypage-link');
+    await expect(mypage).toBeVisible();
+    await expect(mypage).toHaveAttribute('href', MYPAGE_URL);
+    await expect(mypage).toHaveAttribute('target', '_blank');
+    await expect(mypage).toHaveAttribute('rel', /noopener/);
   });
 
   test('高度な設定がデフォルトで折りたたまれている', async ({ page }) => {

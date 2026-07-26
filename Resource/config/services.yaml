@@ -3,6 +3,11 @@ parameters:
     # Client Resolve API の Discovery URL デフォルト値。
     # 環境変数 ECAUTH_CLIENT_RESOLVE_URL が設定されていればそちらが優先される。
     ecauth_default_discovery_url: 'https://api.ec-auth.io'
+    # 設定画面に表示する申込 / マイページ導線の URL デフォルト値。
+    # Hugo 生成の実 URL に合わせて末尾スラッシュ付き (無いと 301 が挟まる)。
+    # 環境変数 ECAUTH_SIGNUP_URL / ECAUTH_MYPAGE_URL が設定されていればそちらが優先される。
+    ecauth_default_signup_url: 'https://ec-auth.io/signup/'
+    ecauth_default_mypage_url: 'https://ec-auth.io/mypage/'
 
 services:
     Plugin\EcAuthLogin43\:
@@ -13,6 +18,8 @@ services:
         bind:
             $ecauth_auth_js_version: '%ecauth_auth_js_version%'
             $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
+            $signupUrl: '%env(default:ecauth_default_signup_url:ECAUTH_SIGNUP_URL)%'
+            $mypageUrl: '%env(default:ecauth_default_mypage_url:ECAUTH_MYPAGE_URL)%'
             $eccubeTimezone: '%timezone%'
 
     # PSR-18 HTTP クライアント
