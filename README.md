@@ -1,6 +1,6 @@
-# EcAuthLogin43 - EC-CUBE 4.3系 EcAuth 認証プラグイン
+# EcAuthLogin43 - EC-CUBE 4.2/4.3系 EcAuth 認証プラグイン
 
-EC-CUBE 4.3系管理画面向けの EcAuth B2Bパスキー認証プラグインです。
+EC-CUBE 4.2/4.3系管理画面向けの EcAuth B2Bパスキー認証プラグインです。
 
 ## 機能
 
@@ -10,8 +10,8 @@ EC-CUBE 4.3系管理画面向けの EcAuth B2Bパスキー認証プラグイン�
 
 ## 要件
 
-- EC-CUBE 4.3系
-- PHP 8.3以上
+- EC-CUBE 4.2/4.3系
+- PHP 7.4以上
 - HTTPS環境（WebAuthn必須）
 
 ## インストール

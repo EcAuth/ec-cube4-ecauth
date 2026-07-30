@@ -4,7 +4,7 @@
 
 ## プロジェクト概要
 
-EC-CUBE 4.3系管理画面向け EcAuth B2Bパスキー認証プラグイン（EcAuthLogin43）。
+EC-CUBE 4.2/4.3系管理画面向け EcAuth B2Bパスキー認証プラグイン（EcAuthLogin43）。
 EcAuth Identity Provider と連携し、管理画面にパスキー（WebAuthn/FIDO2）認証を追加する。
 
 ## 注意事項
