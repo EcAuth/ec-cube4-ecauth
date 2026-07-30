@@ -28,6 +28,46 @@ docker compose logs ec-cube
 docker compose down
 ```
 
+### プラグインのインストール元（ローカルソース / package-api）
+
+`docker-entrypoint.sh` は `ECCUBE_AUTHENTICATION_KEY` の有無でインストール元を切り替える。
+
+| `ECCUBE_AUTHENTICATION_KEY` | インストール元 | コマンド | 用途 |
+|---|---|---|---|
+| 未設定（既定） | `/plugin`（ワーキングツリー） | `eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin` | 日常の開発・PR CI |
+| 設定済 | オーナーズストアの package-api | `eccube:composer:require ec-cube/ecauthlogin43 [version]` | 申請中パッケージの検証 |
+
+`eccube:composer:require` は `--from` を付けると path リポジトリを追加し、**そのパッケージを
+package-api リポジトリから exclude する**（`ComposerApiService::init()`）。したがって両立せず、
+どちらか一方になる。
+
+```bash
+# 既定（ローカルソース）
+op run --env-file=.env.tpl -- docker compose up -d --build
+
+# 検証キーで package-api から「申請中のパッケージ」を入れる
+op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+
+# バージョンを固定する場合（非秘密なのでインラインで渡す）
+ECAUTH_PLUGIN_VERSION=1.0.1 \
+  op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+```
+
+検証キー（`X-ECCUBE-KEY`）はオーナーズストアにリリース申請すると発行される。
+`ComposerApiService` は package-api へのリクエストに
+`X-ECCUBE-KEY: {dtb_base_info.authentication_key}` を付けるため、entrypoint は
+composer require の前にこの値を DB へ書き込む。管理画面「オーナーズストア > 認証キー設定」で
+人が入力するのと同じ場所であり、EC-CUBE コアへのパッチではない。
+
+**キーの扱い**: 値はコマンド引数に載せず、標準入力で渡した PHP スクリプトが `$_SERVER` から
+読む。`ps` や docker のコマンドラインに現れないようにするため。ログにも出力しない。
+（環境変数の参照に `getenv()` を使わないのは、スレッドセーフでなく Symfony でも非推奨のため。
+`$_ENV` は `variables_order` に `E` が無いと空になるが、`$_SERVER` は `EGPCS` / `GPCS` の
+どちらでも CLI SAPI が populate する。）
+
+CI では `workflow_dispatch` の `install_source` を `package-api` にしたときだけ
+1Password から読み込む（fork の PR には secrets が無いため、既定はローカルソース）。
+
 ### 静的解析
 
 ```bash
