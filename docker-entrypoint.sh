@@ -33,18 +33,88 @@ bin/console doctrine:query:sql 'select * from dtb_base_info' > /dev/null 2>&1 ||
 
 echo "PassEnv APP_ENV APP_DEBUG TRUSTED_PROXIES TRUSTED_HOSTS" > /etc/apache2/conf-enabled/eccube_env.conf
 
-# プラグインがまだインストールされていなければインストール
+# 検証キー（オーナーズストアのリリース申請で発行される X-ECCUBE-KEY）を
+# dtb_base_info.authentication_key に設定する。
+#
+# ComposerApiService は package-api リポジトリに `X-ECCUBE-KEY: {authentication_key}` を
+# 付けてリクエストするため、composer require の前に DB へ入れておく必要がある。
+# 管理画面「オーナーズストア > 認証キー設定」で人が入力するのと同じ場所であり、
+# EC-CUBE コアへのパッチではない。
+#
+# キーをコマンド引数に載せると `ps` や docker のコマンドラインに現れてしまうため、
+# スクリプトは標準入力から渡し、キー自体は PHP 側で getenv() する。
+# （プラグイン本体のコードでは env 直参照を禁止しているが、ここは DI コンテナの無い
+#   開発／CI 用エントリポイントであり、env 経由にすること自体が漏洩対策になっている）
+set_authentication_key() {
+    php <<'PHP'
+<?php
+// DATABASE_URL 例: postgresql://eccube:password@postgres:5432/eccube_db
+$url = parse_url((string) getenv('DATABASE_URL'));
+$key = (string) getenv('ECCUBE_AUTHENTICATION_KEY');
+
+if (!is_array($url) || !isset($url['host'], $url['path']) || $key === '') {
+    fwrite(STDERR, "authentication_key を設定できません（DATABASE_URL または ECCUBE_AUTHENTICATION_KEY が不正です）\n");
+    exit(1);
+}
+
+$driver = str_starts_with((string) ($url['scheme'] ?? 'postgresql'), 'mysql') ? 'mysql' : 'pgsql';
+$dsn = sprintf(
+    '%s:host=%s;port=%d;dbname=%s',
+    $driver,
+    $url['host'],
+    $url['port'] ?? ($driver === 'mysql' ? 3306 : 5432),
+    ltrim($url['path'], '/')
+);
+
+$pdo = new PDO(
+    $dsn,
+    rawurldecode((string) ($url['user'] ?? '')),
+    rawurldecode((string) ($url['pass'] ?? '')),
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+// dtb_base_info は単一行運用。値はプレースホルダで渡し SQL 文字列に埋め込まない。
+$pdo->prepare('UPDATE dtb_base_info SET authentication_key = ?')->execute([$key]);
+
+fwrite(STDOUT, "authentication_key を設定しました（値は出力しません）\n");
+PHP
+}
+
+# プラグインがまだインストールされていなければインストールする。
+#
+# インストール元は ECCUBE_AUTHENTICATION_KEY の有無で切り替える。
+#   未設定: /plugin（このリポジトリのワーキングツリー）から入れる。PR CI の既定動作。
+#   設定済: package-api から入れる。オーナーズストアにリリース申請すると検証キーが発行され、
+#           そのキーで「申請中のパッケージ」を取得できる。公開前のパッケージを実際の配布
+#           経路どおりに検証したいときに使う。
+#
+# eccube:composer:require は --from を付けると path リポジトリを追加し、そのパッケージを
+# package-api リポジトリから exclude する（ComposerApiService::init）。両立しないため
+# 明示的に分岐させる。
 plugin_list=$(bin/console eccube:plugin:list 2>/dev/null || true)
-if ! echo "$plugin_list" | grep -q EcAuthLogin43; then
-    echo "Installing EcAuthLogin43 plugin..."
-    bin/console eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin
+if echo "$plugin_list" | grep -q EcAuthLogin43; then
+    echo "EcAuthLogin43 plugin already installed."
+else
+    if [ -n "${ECCUBE_AUTHENTICATION_KEY:-}" ]; then
+        echo "Installing EcAuthLogin43 from package-api (version: ${ECAUTH_PLUGIN_VERSION:-latest})..."
+        set_authentication_key
+        if [ -n "${ECAUTH_PLUGIN_VERSION:-}" ]; then
+            bin/console eccube:composer:require ec-cube/ecauthlogin43 "${ECAUTH_PLUGIN_VERSION}"
+        else
+            bin/console eccube:composer:require ec-cube/ecauthlogin43
+        fi
+    else
+        echo "Installing EcAuthLogin43 from /plugin (local source)..."
+        bin/console eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin
+    fi
     bin/console eccube:plugin:enable --code=EcAuthLogin43
     bin/console cache:clear --no-warmup
     bin/console cache:warmup --no-optional-warmers
     echo "EcAuthLogin43 plugin installed and enabled."
-else
-    echo "EcAuthLogin43 plugin already installed."
 fi
+
+# どのソース・どのバージョンで入ったかを起動ログに残す（CI の失敗解析用）。
+bin/console eccube:plugin:list || true
 
 # Apache 起動
 exec "$@"

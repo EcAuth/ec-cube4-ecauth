@@ -5,6 +5,19 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      install_source:
+        description: 'プラグインのインストール元'
+        type: choice
+        options:
+          - local
+          - package-api
+        default: local
+      plugin_version:
+        description: 'package-api から入れるプラグインのバージョン（空なら最新）'
+        type: string
+        required: false
 
 jobs:
   e2e:
@@ -28,7 +41,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Load secrets from 1Password
-        uses: 1password/load-secrets-action@v4
+        uses: 1password/load-secrets-action@eb2efd0703da22a93c467f2d1ffbb6826c11e19c # v4.1.1
         with:
           export-env: true
         env:
@@ -37,8 +50,27 @@ jobs:
           STAGING_CLIENT_SECRET: op://EcAuth/ecauth-staging-app/client_secret
           STAGING_WEB_APP_SUFFIX: op://EcAuth/ecauth-staging-app/web_app_suffix
 
+      # オーナーズストアの検証キー（X-ECCUBE-KEY）。
+      # 設定されている場合のみ docker-entrypoint.sh が package-api から
+      # 「申請中のパッケージ」をインストールする。既定（push / pull_request）では
+      # このステップが動かないため、/plugin のローカルソースが使われる。
+      # fork からの PR には secrets が無いので、この分岐は必須。
+      - name: Load EC-CUBE verification key from 1Password
+        if: ${{ inputs.install_source == 'package-api' }}
+        uses: 1password/load-secrets-action@eb2efd0703da22a93c467f2d1ffbb6826c11e19c # v4.1.1
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          ECCUBE_AUTHENTICATION_KEY: op://EcAuth/eccube4-ecauth-plugin/eccube_authentication_key
+
       - name: Start Docker environment
+        # ECCUBE_AUTHENTICATION_KEY は直前のステップが export-env で job の env に載せる
+        # （そのステップが動かなければ未設定のまま）。docker compose はそれを継承するので
+        # ここで再指定はしない。未設定＝ローカルソースからのインストール。
         run: docker compose up -d --build --wait
+        env:
+          ECAUTH_PLUGIN_VERSION: ${{ inputs.plugin_version }}
 
       - name: Wait for EC-CUBE to be ready
         run: |
