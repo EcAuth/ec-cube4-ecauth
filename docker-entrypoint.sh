@@ -42,15 +42,19 @@ echo "PassEnv APP_ENV APP_DEBUG TRUSTED_PROXIES TRUSTED_HOSTS" > /etc/apache2/co
 # EC-CUBE コアへのパッチではない。
 #
 # キーをコマンド引数に載せると `ps` や docker のコマンドラインに現れてしまうため、
-# スクリプトは標準入力から渡し、キー自体は PHP 側で getenv() する。
+# スクリプトは標準入力から渡し、キー自体は PHP 側で環境変数から読む。
 # （プラグイン本体のコードでは env 直参照を禁止しているが、ここは DI コンテナの無い
 #   開発／CI 用エントリポイントであり、env 経由にすること自体が漏洩対策になっている）
+#
+# 環境変数の参照は getenv() ではなく $_SERVER を使う。getenv() はスレッドセーフでなく
+# Symfony でも非推奨。$_ENV は variables_order に E が無いと空になるが、$_SERVER は
+# EGPCS / GPCS のどちらでも CLI SAPI が populate する。
 set_authentication_key() {
     php <<'PHP'
 <?php
 // DATABASE_URL 例: postgresql://eccube:password@postgres:5432/eccube_db
-$url = parse_url((string) getenv('DATABASE_URL'));
-$key = (string) getenv('ECCUBE_AUTHENTICATION_KEY');
+$url = parse_url((string) ($_SERVER['DATABASE_URL'] ?? ''));
+$key = (string) ($_SERVER['ECCUBE_AUTHENTICATION_KEY'] ?? '');
 
 if (!is_array($url) || !isset($url['host'], $url['path']) || $key === '') {
     fwrite(STDERR, "authentication_key を設定できません（DATABASE_URL または ECCUBE_AUTHENTICATION_KEY が不正です）\n");

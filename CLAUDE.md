@@ -59,8 +59,11 @@ ECAUTH_PLUGIN_VERSION=1.0.1 \
 composer require の前にこの値を DB へ書き込む。管理画面「オーナーズストア > 認証キー設定」で
 人が入力するのと同じ場所であり、EC-CUBE コアへのパッチではない。
 
-**キーの扱い**: 値はコマンド引数に載せず、標準入力で渡した PHP スクリプトが `getenv()` で
+**キーの扱い**: 値はコマンド引数に載せず、標準入力で渡した PHP スクリプトが `$_SERVER` から
 読む。`ps` や docker のコマンドラインに現れないようにするため。ログにも出力しない。
+（環境変数の参照に `getenv()` を使わないのは、スレッドセーフでなく Symfony でも非推奨のため。
+`$_ENV` は `variables_order` に `E` が無いと空になるが、`$_SERVER` は `EGPCS` / `GPCS` の
+どちらでも CLI SAPI が populate する。）
 
 CI では `workflow_dispatch` の `install_source` を `package-api` にしたときだけ
 1Password から読み込む（fork の PR には secrets が無いため、既定はローカルソース）。
