@@ -95,8 +95,11 @@ PHP
 # eccube:composer:require は --from を付けると path リポジトリを追加し、そのパッケージを
 # package-api リポジトリから exclude する（ComposerApiService::init）。両立しないため
 # 明示的に分岐させる。
-plugin_list=$(bin/console eccube:plugin:list 2>/dev/null || true)
-if echo "$plugin_list" | grep -q EcAuthLogin43; then
+# 導入済み判定には composer を使う。EC-CUBE 4.3 に eccube:plugin:list は存在せず
+# （bin/console が "Command not found" を返す）、それで判定すると常に未導入扱いになる。
+# コンテナを restart したときに再インストールへ走り、eccube:plugin:enable が
+# 「既に有効」で落ちて set -e により Apache が起動しない。
+if composer show ec-cube/ecauthlogin43 >/dev/null 2>&1; then
     echo "EcAuthLogin43 plugin already installed."
 else
     if [ -n "${ECCUBE_AUTHENTICATION_KEY:-}" ]; then
@@ -117,8 +120,11 @@ else
     echo "EcAuthLogin43 plugin installed and enabled."
 fi
 
-# どのソース・どのバージョンで入ったかを起動ログに残す（CI の失敗解析用）。
-bin/console eccube:plugin:list || true
+# どのバージョンで入ったかを起動ログに残す。
+# 検証キー経由（package-api）で回すときは「実際に配布された版が入ったか」がまさに
+# 確認したいことなので、成功時にも必ず残す。
+echo "--- installed plugin version ---"
+composer show ec-cube/ecauthlogin43 || true
 
 # Apache 起動
 exec "$@"
