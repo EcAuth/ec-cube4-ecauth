@@ -10,7 +10,6 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 
 class PasskeyAuthService
@@ -36,11 +35,6 @@ class PasskeyAuthService
     private $apiClient;
 
     /**
-     * @var TokenStorageInterface
-     */
-    private $tokenStorage;
-
-    /**
      * @var UserPasswordHasherInterface
      */
     private $passwordHasher;
@@ -55,7 +49,6 @@ class PasskeyAuthService
         MemberRepository $memberRepository,
         ConfigRepository $configRepository,
         EcAuthApiClient $apiClient,
-        TokenStorageInterface $tokenStorage,
         UserPasswordHasherInterface $passwordHasher,
         LoggerInterface $logger
     ) {
@@ -63,7 +56,6 @@ class PasskeyAuthService
         $this->memberRepository = $memberRepository;
         $this->configRepository = $configRepository;
         $this->apiClient = $apiClient;
-        $this->tokenStorage = $tokenStorage;
         $this->passwordHasher = $passwordHasher;
         $this->logger = $logger;
     }
@@ -205,9 +197,24 @@ class PasskeyAuthService
         }
 
         // 管理者セッション確立（セッション固定化攻撃対策）
+        //
+        // ここで TokenStorage::setToken() を呼んではいけない。
+        // コールバック URL /ecauth/callback は admin firewall の pattern
+        // (^/%eccube_admin_route%/) にマッチせず、customer firewall (^/) の配下で
+        // 処理される。TokenStorage に Member を載せると、レスポンス時に customer
+        // firewall の ContextListener::onKernelResponse() がそれを自身のセッション
+        // キーへ書き出し、_security_customer に Member のトークンが入る。
+        // ContextListener には firewall 個別ではなく全 user provider が渡るため、
+        // 以降のフロントリクエストでも MemberProvider が refreshUser() に成功し、
+        // 「ログイン済みだが ROLE_USER を持たないユーザー」としてセッションが復元される。
+        // その結果 /mypage/login はログインフォームを出さずに /mypage/ へリダイレクトし、
+        // /mypage/ は access_control の ROLE_USER を満たさず Access Denied になる。
+        //
+        // _security_admin へ直接書けば、リダイレクト先の管理画面リクエストで
+        // admin firewall の ContextListener が正しくトークンを復元するため、
+        // 管理画面へのログインは成立する。
         $session->migrate(true);
         $token = new UsernamePasswordToken($Member, 'admin', $Member->getRoles());
-        $this->tokenStorage->setToken($token);
         $session->set('_security_admin', serialize($token));
 
         $this->logger->info('EcAuth passkey authentication successful', [
