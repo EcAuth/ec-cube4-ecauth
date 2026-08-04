@@ -49,7 +49,8 @@ op run --env-file=.env.tpl -- docker compose up -d --build
 op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
 
 # バージョンを固定する場合（非秘密なのでインラインで渡す）
-ECAUTH_PLUGIN_VERSION=1.0.1 \
+# 値は検証したいバージョンに読み替える。省略すると最新が入る
+ECAUTH_PLUGIN_VERSION=1.0.2 \
   op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
 ```
 
