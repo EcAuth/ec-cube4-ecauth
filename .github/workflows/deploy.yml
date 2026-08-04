@@ -29,7 +29,10 @@ jobs:
         working-directory: ../
         run: |
           rm -rf "$GITHUB_WORKSPACE/.github"
-          rm -rf "$GITHUB_WORKSPACE/tests"
+          # このリポジトリのテストは大文字の Tests/。Linux は case-sensitive なので
+          # 小文字だけ指定すると削除されず、Playwright spec が配布物に混入する。
+          # 将来 tests/ に変わっても取りこぼさないよう両方指定する。
+          rm -rf "$GITHUB_WORKSPACE/Tests" "$GITHUB_WORKSPACE/tests"
           rm -rf "$GITHUB_WORKSPACE/node_modules"
           rm -f "$GITHUB_WORKSPACE/Dockerfile"
           rm -f "$GITHUB_WORKSPACE/docker-compose.yml"
@@ -44,7 +47,10 @@ jobs:
           rm -f "$GITHUB_WORKSPACE/phpstan.neon.dist"
           rm -f "$GITHUB_WORKSPACE/rector.php"
           rm -f "$GITHUB_WORKSPACE/.php-cs-fixer.dist.php"
-          rm -f "$GITHUB_WORKSPACE/.env.tpl"
+          # 1Password テンプレートは秘密値こそ含まないが、Vault / アイテム名が
+          # 公開パッケージに載るため配布物から除外する。テンプレートが増えても
+          # 取りこぼさないようワイルドカードで消す (.env.tpl / .env.verify.tpl 等)。
+          rm -f "$GITHUB_WORKSPACE"/.env*.tpl
           rm -f "$GITHUB_WORKSPACE/CLAUDE.md"
           find "$GITHUB_WORKSPACE" -name "dummy" -delete
           find "$GITHUB_WORKSPACE" -name ".git*" -and ! -name ".gitkeep" -print0 | xargs -0 rm -rf
