@@ -341,6 +341,39 @@ test.describe.serial('E2E: パスキー登録からログイン完了までの�
     await expect(page.locator('h2', { hasText: 'ホーム' })).toBeVisible();
   });
 
+  // リグレッション (#45): 管理者パスキーログインが customer firewall のセッションを
+  // 汚染していないことを検証する。
+  //
+  // コールバック URL /ecauth/callback は admin firewall の pattern
+  // (^/%eccube_admin_route%/) にマッチせず customer firewall (^/) 配下で処理される。
+  // handleCallback が TokenStorage に Member トークンを載せると、レスポンス時に
+  // customer firewall の ContextListener がそれを _security_customer へ書き出し、
+  // 以降フロントは「ログイン済みだが ROLE_USER を持たないユーザー」として扱う。結果:
+  //   - /mypage/login はフォームを出さず /mypage/ へリダイレクトされる
+  //   - /mypage/ は access_control の ROLE_USER を満たさず 403 (Access Denied)
+  //
+  // 同一ブラウザ (同一セッション) で検証する必要があるため、新規 context ではなく
+  // パスキーログイン済みの page をそのまま使う。
+  test('#45: 管理者パスキーログイン後もフロントの会員ログイン画面が表示される', async () => {
+    // /mypage/login はログインフォームを表示したままであること (/mypage/ へ飛ばされない)
+    const loginRes = await page.goto('/mypage/login');
+    expect(loginRes?.status()).toBe(200);
+    await expect(page).toHaveURL(/\/mypage\/login\/?$/);
+    await expect(page.locator('input[name="login_email"]')).toBeVisible();
+    await expect(page.locator('input[name="login_pass"]')).toBeVisible();
+
+    // /mypage/ は未ログイン扱いとしてログイン画面へ誘導される (Access Denied にならない)
+    const mypageRes = await page.goto('/mypage/');
+    expect(mypageRes?.status()).not.toBe(403);
+    await expect(page.locator('input[name="login_email"]')).toBeVisible();
+
+    // フロントを経由しても管理画面のセッションは維持されている
+    // (_security_admin への直接書き込みが効いていることの確認)
+    await page.goto(`${ADMIN_URL}/`);
+    await expect(page).toHaveURL(/\/admin\/?$/);
+    await expect(page.locator('h2', { hasText: 'ホーム' })).toBeVisible();
+  });
+
   // パスキーログイン直後 (session に access_token / current_credential_id が
   // 揃った状態) で /admin/ecauth/passkey/ を開き、一覧画面の各機能を検証する。
   // 別 spec として独立させると同一 staging admin (ecauth_subject UNIQUE) を

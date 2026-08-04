@@ -216,3 +216,11 @@ ec-cube4-ecauth/
 - state パラメータは hash_equals() で検証、使い捨て削除
 - WebAuthn は HTTPS 必須。HTTP 時はボタン非表示
 - デプロイ先 URL を issue/PR/README に含めないこと
+- **コールバックで `TokenStorage::setToken()` を使わない**（#45）。`/ecauth/callback` は
+  admin firewall の pattern (`^/%eccube_admin_route%/`) にマッチせず customer firewall (`^/`)
+  配下で処理されるため、TokenStorage に Member を載せると customer firewall の
+  `ContextListener` がレスポンス時に `_security_customer` へ書き出し、会員がマイページに
+  入れなくなる。管理者セッションは `$session->set('_security_admin', serialize($token))` で
+  確立する（リダイレクト先の管理画面リクエストで admin firewall が復元する）。
+  「Symfony の作法に合わせる」等の理由で `setToken()` に戻さないこと。
+  リグレッションテスト: `Tests/specs/passkey_auth.spec.ts` の `#45:` で始まる test
