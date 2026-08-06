@@ -211,7 +211,15 @@ class EcAuthApiClient
             return '';
         }
 
-        $baseUrl = $this->baseUrlValidator->normalize($Config->getEcauthBaseUrl());
+        // 未設定（プラグイン導入直後）と「設定されているが許可されていない」は
+        // 運用上まったく別の事象なので、前者をここで警告にしない。
+        // 未設定の場合は呼び出し側が "not configured" を記録する。
+        $configured = trim((string) ($Config->getEcauthBaseUrl() ?? ''));
+        if ($configured === '') {
+            return '';
+        }
+
+        $baseUrl = $this->baseUrlValidator->normalize($configured);
         if ($baseUrl === null) {
             $this->logger->error('EcAuth Base URL is not allowed');
 

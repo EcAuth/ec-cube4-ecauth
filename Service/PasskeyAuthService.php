@@ -369,7 +369,14 @@ class PasskeyAuthService
             return null;
         }
 
-        $baseUrl = $this->baseUrlValidator->normalize($Config->getEcauthBaseUrl());
+        $configured = trim((string) ($Config->getEcauthBaseUrl() ?? ''));
+        if ($configured === '') {
+            $this->logger->error('EcAuth Base URL is not configured; refusing to verify ID token');
+
+            return null;
+        }
+
+        $baseUrl = $this->baseUrlValidator->normalize($configured);
         if ($baseUrl === null) {
             $this->logger->error('EcAuth Base URL is not allowed; refusing to verify ID token');
 
