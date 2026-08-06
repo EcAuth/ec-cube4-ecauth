@@ -24,6 +24,10 @@ services:
       ECCUBE_AUTHENTICATION_KEY: ${ECCUBE_AUTHENTICATION_KEY:-}
       # package-api から入れるプラグインのバージョン（空なら最新）。非秘密なのでそのまま渡す。
       ECAUTH_PLUGIN_VERSION: ${ECAUTH_PLUGIN_VERSION:-}
+      # EcAuth Base URL として許可するホスト（カンマ区切り）。既定は ec-auth.io の
+      # サブドメインのみのため、開発・ステージングの Azure ホストを明示的に足す。
+      # 未設定だと dev / staging の EcAuth を設定できず、パスキーログインが通らない。
+      ECAUTH_ALLOWED_HOSTS: ${ECAUTH_ALLOWED_HOSTS:-.ec-auth.io,.azurewebsites.net}
     depends_on:
       postgres:
         condition: service_healthy

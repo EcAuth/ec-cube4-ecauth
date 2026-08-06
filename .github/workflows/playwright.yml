@@ -71,6 +71,9 @@ jobs:
         run: docker compose up -d --build --wait
         env:
           ECAUTH_PLUGIN_VERSION: ${{ inputs.plugin_version }}
+          # E2E は staging の EcAuth (*.azurewebsites.net) を指すため、
+          # プラグイン既定の許可ホスト (.ec-auth.io) だけでは設定を保存できない。
+          ECAUTH_ALLOWED_HOSTS: .ec-auth.io,.azurewebsites.net
 
       - name: Wait for EC-CUBE to be ready
         run: |

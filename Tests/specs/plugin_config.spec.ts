@@ -12,6 +12,10 @@ const ADVANCED_PANEL = '#ecauth-advanced-settings';
 const SIGNUP_URL = process.env.ECAUTH_SIGNUP_URL || 'https://ec-auth.io/signup/';
 const MYPAGE_URL = process.env.ECAUTH_MYPAGE_URL || 'https://ec-auth.io/mypage/';
 
+// EcAuth URL は許可リスト（ECAUTH_ALLOWED_HOSTS、既定は .ec-auth.io）を通るホストしか
+// 保存できない（EcAuthDocs #101）。保存できる例として ec-auth.io のサブドメインを使う。
+const ALLOWED_BASE_URL = 'https://e2e-tenant.ec-auth.io';
+
 test.describe('プラグイン設定画面', () => {
   test.beforeEach(async ({ page }) => {
     // 管理画面ログイン
@@ -81,7 +85,7 @@ test.describe('プラグイン設定画面', () => {
     // 高度な設定を展開して URL を入力（resolve をスキップ）
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
-    await page.fill('input[name="config[ecauth_base_url]"]', 'https://auth.example.com');
+    await page.fill('input[name="config[ecauth_base_url]"]', ALLOWED_BASE_URL);
 
     await page.click('button[type="submit"]');
 
@@ -93,6 +97,31 @@ test.describe('プラグイン設定画面', () => {
     await expect(page.locator('input[name="config[client_id]"]')).toHaveValue('test-client-id');
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
-    await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue('https://auth.example.com');
+    await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(ALLOWED_BASE_URL);
+  });
+
+  // EcAuthDocs #101: Base URL はトークン交換先かつ JWKS 取得先になるため、
+  // 許可リスト外のホストは保存段階で弾く。
+  test('#101: 許可されていないホストの EcAuth URL は保存できない', async ({ page }) => {
+    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+
+    await page.fill('input[name="config[client_id]"]', 'test-client-id');
+    await page.fill('input[name="config[client_secret]"]', 'test-client-secret');
+
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
+    await page.fill('input[name="config[ecauth_base_url]"]', 'https://auth.example.com');
+
+    await page.click('button[type="submit"]');
+
+    await expect(page.locator('.alert-success')).not.toBeVisible();
+    await expect(page.locator('text=許可されていないホスト')).toBeVisible();
+
+    // 拒否された値が保存されていないこと
+    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator('input[name="config[ecauth_base_url]"]')).not.toHaveValue(
+      'https://auth.example.com',
+    );
   });
 });
