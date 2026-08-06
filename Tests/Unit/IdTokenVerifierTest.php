@@ -58,9 +58,19 @@ class IdTokenVerifierTest extends TestCase
 
     public function testTamperedSignatureIsRejected(): void
     {
+        $tampered = RsaKeyFixture::tamperSignature(self::$key->sign($this->claims()));
+
+        self::assertNull($this->createVerifier()->verify($tampered, self::ISSUER, self::AUDIENCE));
+    }
+
+    public function testTamperedPayloadIsRejected(): void
+    {
+        // 正規のトークンの sub だけを別の管理者のものに差し替える（署名は元のまま）
         $token = self::$key->sign($this->claims());
-        // 署名の末尾 1 文字を書き換える
-        $tampered = substr($token, 0, -1).(substr($token, -1) === 'A' ? 'B' : 'A');
+        $parts = explode('.', $token);
+        $payload = json_decode(RsaKeyFixture::base64UrlDecode($parts[1]), true);
+        $payload['sub'] = 'another-admin-subject';
+        $tampered = $parts[0].'.'.RsaKeyFixture::base64UrlEncode((string) json_encode($payload)).'.'.$parts[2];
 
         self::assertNull($this->createVerifier()->verify($tampered, self::ISSUER, self::AUDIENCE));
     }
