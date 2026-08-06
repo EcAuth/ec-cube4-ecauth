@@ -45,6 +45,7 @@ jobs:
           rm -f "$GITHUB_WORKSPACE/pnpm-workspace.yaml"
           rm -f "$GITHUB_WORKSPACE/playwright.config.ts"
           rm -f "$GITHUB_WORKSPACE/phpstan.neon.dist"
+          rm -f "$GITHUB_WORKSPACE/phpunit.xml.dist"
           rm -f "$GITHUB_WORKSPACE/rector.php"
           rm -f "$GITHUB_WORKSPACE/.php-cs-fixer.dist.php"
           # 1Password テンプレートは秘密値こそ含まないが、Vault / アイテム名が

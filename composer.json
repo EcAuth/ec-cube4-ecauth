@@ -1,6 +1,6 @@
 {
   "name": "ec-cube/ecauthlogin43",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "EC-CUBE 4.2/4.3系向け EcAuth 認証プラグイン",
   "type": "eccube-plugin",
   "license": "LGPL-2.1-or-later",
