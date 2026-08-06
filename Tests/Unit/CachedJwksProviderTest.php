@@ -5,6 +5,7 @@ namespace Plugin\EcAuthLogin43\Tests\Unit;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Plugin\EcAuthLogin43\Service\CachedJwksProvider;
+use Plugin\EcAuthLogin43\Tests\Unit\Support\FailingCachePool;
 use Plugin\EcAuthLogin43\Tests\Unit\Support\FakeClientException;
 use Plugin\EcAuthLogin43\Tests\Unit\Support\FakeHttpClient;
 use Psr\Log\NullLogger;
@@ -154,6 +155,45 @@ class CachedJwksProviderTest extends TestCase
 
         self::assertNull($this->createProvider($client, new ArrayAdapter())->getJwks(''));
         self::assertCount(0, $client->requests);
+    }
+
+    public function testCacheBackendFailureDoesNotBreakVerification(): void
+    {
+        // JWKS 自体は取得できているのに、キャッシュ障害で認証が落ちてはいけない
+        $client = new FakeHttpClient([
+            ['status' => 200, 'body' => $this->jwksBody('kid-1')],
+            ['status' => 200, 'body' => $this->jwksBody('kid-1')],
+        ]);
+        $provider = new CachedJwksProvider(
+            $client,
+            new Psr17Factory(),
+            new FailingCachePool(true),
+            new NullLogger(),
+        );
+
+        $keys = $provider->getJwks(self::BASE_URL);
+
+        self::assertIsArray($keys);
+        self::assertSame('kid-1', $keys[0]['kid']);
+
+        // 強制再取得の経路（クールダウンマーカーの保存）でも例外を漏らさない
+        self::assertIsArray($provider->getJwks(self::BASE_URL, true));
+    }
+
+    public function testUnavailableCacheBackendStillReturnsKeys(): void
+    {
+        // getItem() 自体が投げるケース（Redis 接続断など）
+        $client = new FakeHttpClient([
+            ['status' => 200, 'body' => $this->jwksBody('kid-1')],
+        ]);
+        $provider = new CachedJwksProvider(
+            $client,
+            new Psr17Factory(),
+            new FailingCachePool(false, true),
+            new NullLogger(),
+        );
+
+        self::assertIsArray($provider->getJwks(self::BASE_URL));
     }
 
     private function createProvider(FakeHttpClient $client, ArrayAdapter $cache): CachedJwksProvider

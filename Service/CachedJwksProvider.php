@@ -2,8 +2,9 @@
 
 namespace Plugin\EcAuthLogin43\Service;
 
+use Psr\Cache\CacheException;
+use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
-use Psr\Cache\InvalidArgumentException as CacheInvalidArgumentException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -92,10 +93,12 @@ class CachedJwksProvider implements JwksProviderInterface
 
         $cacheKey = self::CACHE_KEY_PREFIX.hash('sha256', $baseUrl);
 
+        // キャッシュはあくまで最適化なので、バックエンド障害で認証まで巻き込まない。
+        // PSR-6 の InvalidArgumentException は CacheException を継承するため、
+        // CacheException を捕捉すれば両方を吸収できる。
         try {
             $item = $this->cache->getItem($cacheKey);
-        } catch (CacheInvalidArgumentException $e) {
-            // キャッシュが使えなくても取得自体は継続する
+        } catch (CacheException $e) {
             $this->logger->warning('EcAuth JWKS cache unavailable', [
                 'error' => $e->getMessage(),
             ]);
@@ -130,9 +133,7 @@ class CachedJwksProvider implements JwksProviderInterface
             $item->expiresAfter(self::CACHE_TTL);
             // 保存に失敗しても取得自体は成立しているので続行する。ただし黙って
             // 落とすとログインのたびに JWKS を取りに行く状態に気付けないため記録する。
-            if (!$this->cache->save($item)) {
-                $this->logger->warning('Failed to cache the EcAuth JWKS');
-            }
+            $this->saveQuietly($item, 'Failed to cache the EcAuth JWKS');
         }
 
         return $keys;
@@ -150,7 +151,7 @@ class CachedJwksProvider implements JwksProviderInterface
 
         try {
             $marker = $this->cache->getItem($cooldownKey);
-        } catch (CacheInvalidArgumentException $e) {
+        } catch (CacheException $e) {
             // クールダウンを管理できない場合は従来どおり再取得を許可する
             return true;
         }
@@ -163,9 +164,34 @@ class CachedJwksProvider implements JwksProviderInterface
 
         $marker->set(true);
         $marker->expiresAfter(self::FORCED_REFRESH_COOLDOWN);
-        $this->cache->save($marker);
+        // マーカーを保存できないとクールダウンが機能しない（＝ 強制再取得を
+        // 抑制できない）。取得自体は許可するが、抑制が効いていないことを残す。
+        $this->saveQuietly($marker, 'Failed to record the EcAuth JWKS refresh cooldown');
 
         return true;
+    }
+
+    /**
+     * キャッシュへの保存はベストエフォートで行う。
+     *
+     * JWKS の取得自体は成功しているため、キャッシュバックエンドの障害
+     * （false 返却・CacheException のいずれも）で認証処理まで巻き込まない。
+     */
+    private function saveQuietly(CacheItemInterface $item, string $failureMessage): bool
+    {
+        try {
+            if ($this->cache->save($item)) {
+                return true;
+            }
+        } catch (CacheException $e) {
+            $this->logger->warning($failureMessage, ['error' => $e->getMessage()]);
+
+            return false;
+        }
+
+        $this->logger->warning($failureMessage);
+
+        return false;
     }
 
     /**
