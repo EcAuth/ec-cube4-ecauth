@@ -102,7 +102,11 @@ class CachedJwksProvider implements JwksProviderInterface
         if ($item !== null) {
             $item->set($keys);
             $item->expiresAfter(self::CACHE_TTL);
-            $this->cache->save($item);
+            // 保存に失敗しても取得自体は成立しているので続行する。ただし黙って
+            // 落とすとログインのたびに JWKS を取りに行く状態に気付けないため記録する。
+            if (!$this->cache->save($item)) {
+                $this->logger->warning('Failed to cache the EcAuth JWKS');
+            }
         }
 
         return $keys;

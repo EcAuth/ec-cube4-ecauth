@@ -99,7 +99,11 @@ class RsaKeyFixture
             .'.'.self::base64UrlEncode((string) json_encode($payload));
 
         $signature = '';
-        openssl_sign($signingInput, $signature, $this->privateKey, OPENSSL_ALGO_SHA256);
+        // 署名生成に失敗すると空署名のトークンができ、「拒否されること」を確認する
+        // 多数のテストが理由を取り違えたまま成功してしまう（偽陰性）。
+        if (!openssl_sign($signingInput, $signature, $this->privateKey, OPENSSL_ALGO_SHA256)) {
+            throw new \RuntimeException('Failed to sign a test JWT');
+        }
 
         return $signingInput.'.'.self::base64UrlEncode($signature);
     }

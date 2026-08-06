@@ -18,7 +18,14 @@ namespace Plugin\EcAuthLogin43\Service;
  *   example.com:8081  … ホストとポートの完全一致
  *   http://localhost:8080 … 既定では https のみ許可するため、http を許す場合はスキームを明示する
  *
+ * ポートを省略したエントリはスキームの既定ポート（https なら 443）のみを許可する。
+ * 既定以外のポートを使う場合は host:port で明示すること。
+ *
  * 許可リストが空の場合はすべて拒否する（fail-closed）。
+ *
+ * ワイルドカードは可能な限り狭くすること。例えば .azurewebsites.net のような
+ * 共有ホスティングのサフィックスを許可すると、そのサービスの全利用者
+ * （＝無関係な第三者）を信頼することになり、この検証の意味が失われる。
  */
 class BaseUrlValidator
 {
@@ -62,7 +69,7 @@ class BaseUrlValidator
 
         $scheme = strtolower($parts['scheme']);
         $host = strtolower($parts['host']);
-        $port = isset($parts['port']) ? $parts['port'] : null;
+        $port = $this->normalizePort($scheme, isset($parts['port']) ? $parts['port'] : null);
 
         if (!$this->matchesAllowedHost($scheme, $host, $port)) {
             return null;
@@ -85,7 +92,10 @@ class BaseUrlValidator
                 continue;
             }
 
-            if ($allowed['port'] !== null && $allowed['port'] !== $port) {
+            // ポートを省略したエントリは「スキームの既定ポートのみ」を意味する。
+            // 省略＝任意ポート許可にすると、許可ホスト上の別サービス（例
+            // https://tenant.ec-auth.io:8443）まで信頼境界に入ってしまう。
+            if ($allowed['port'] !== $port) {
                 continue;
             }
 
@@ -142,11 +152,24 @@ class BaseUrlValidator
             $parsed[] = [
                 'scheme' => $scheme,
                 'host' => $entry,
-                'port' => $port,
+                'port' => $this->normalizePort($scheme === null ? 'https' : $scheme, $port),
                 'suffix' => $suffix,
             ];
         }
 
         return $parsed;
+    }
+
+    /**
+     * スキームの既定ポートを明示指定した場合は、省略時と同じ「null」に正規化する。
+     * https://example.com と https://example.com:443 を別物として扱わないため。
+     */
+    private function normalizePort(string $scheme, ?int $port): ?int
+    {
+        if (($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80)) {
+            return null;
+        }
+
+        return $port;
     }
 }

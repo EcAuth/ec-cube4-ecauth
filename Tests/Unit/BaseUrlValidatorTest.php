@@ -61,12 +61,33 @@ class BaseUrlValidatorTest extends TestCase
         self::assertNull($validator->normalize('https://localhost'));
     }
 
+    public function testEntryWithoutPortAllowsOnlyTheDefaultPort(): void
+    {
+        $validator = new BaseUrlValidator('.ec-auth.io');
+
+        // 許可ホスト上の別サービスまで信頼境界に入れない
+        self::assertNull($validator->normalize('https://tenant.ec-auth.io:8443'));
+        // 既定ポートの明示指定は省略時と同一視し、正規化して落とす
+        self::assertSame('https://tenant.ec-auth.io', $validator->normalize('https://tenant.ec-auth.io:443'));
+    }
+
+    public function testExplicitDefaultPortInAllowListIsEquivalentToOmittingIt(): void
+    {
+        $validator = new BaseUrlValidator('ecauth.example.com:443');
+
+        self::assertSame('https://ecauth.example.com', $validator->normalize('https://ecauth.example.com'));
+        self::assertSame('https://ecauth.example.com', $validator->normalize('https://ecauth.example.com:443'));
+        self::assertNull($validator->normalize('https://ecauth.example.com:8443'));
+    }
+
     public function testMultipleEntriesAreSupported(): void
     {
-        $validator = new BaseUrlValidator('.ec-auth.io, .azurewebsites.net, localhost:8081');
+        // 共有ホスティングのサフィックス（.azurewebsites.net 等）は例に使わない。
+        // 推奨設定と誤読されうるため（クラス docblock 参照）。
+        $validator = new BaseUrlValidator('.ec-auth.io, ecauth-staging.example.net, localhost:8081');
 
         self::assertNotNull($validator->normalize('https://tenant.ec-auth.io'));
-        self::assertNotNull($validator->normalize('https://ecauth-dev.azurewebsites.net'));
+        self::assertNotNull($validator->normalize('https://ecauth-staging.example.net'));
         self::assertNotNull($validator->normalize('https://localhost:8081'));
         self::assertNull($validator->normalize('https://evil.example.com'));
     }
