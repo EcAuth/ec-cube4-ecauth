@@ -13,8 +13,10 @@ parameters:
     # client-resolve 応答の改竄で攻撃者のホストに向かないよう許可リストで縛る
     # （EcAuthDocs #101）。
     # 環境変数 ECAUTH_ALLOWED_HOSTS が設定されていればそちらが優先される。
-    # 開発・ステージング環境（*.azurewebsites.net や localhost）を使う場合は
-    # 環境変数側で明示的に追加すること。書式は BaseUrlValidator の docblock を参照。
+    # ec-auth.io 配下に無い開発・ステージング環境を使う場合は、環境変数側に
+    # 「完全なホスト名」を追加すること。共有ホスティングのサフィックス
+    # （.azurewebsites.net 等）を許可すると、そのサービスの全利用者を信頼する
+    # ことになり本検証の意味が失われる。書式は BaseUrlValidator の docblock を参照。
     ecauth_default_allowed_hosts: '.ec-auth.io'
 
 services:
