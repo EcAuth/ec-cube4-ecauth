@@ -95,6 +95,35 @@ jobs:
             exit 1
           fi
 
+      - name: Warm up staging EcAuth
+        # staging の App Service は Free tier のため alwaysOn を有効化できず、
+        # 一定時間アイドルだとワーカーがアンロードされる。コールドスタート中は
+        # HTTP が遅いだけでなく TCP 接続自体が失敗しうる（実際に E2E が
+        # cURL error 7 / 28 で落ちた）。Playwright を走らせる前に暖めておく。
+        #
+        # ここで落ちた場合は「staging が応答しない」ことが明確になり、
+        # プラグイン側の不具合と切り分けられる。
+        env:
+          ECAUTH_BASE_URL: https://ecauth-staging-${{ env.STAGING_WEB_APP_SUFFIX }}.azurewebsites.net
+        run: |
+          ready=false
+          for i in $(seq 1 10); do
+            # 接続失敗時も curl は -w で 000 を出力するため、ここで既定値を足すと
+            # 000000 のように連結されてしまう。curl の出力をそのまま使う。
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "${ECAUTH_BASE_URL}/healthz" || true)
+            if [ "${code:-000}" = "200" ]; then
+              echo "staging EcAuth is warm (attempt $i)"
+              ready=true
+              break
+            fi
+            echo "Waiting for staging EcAuth... ($i/10, http=${code:-000})"
+            sleep 5
+          done
+          if [ "$ready" != "true" ]; then
+            echo "::error::staging EcAuth did not become reachable; E2E cannot run" >&2
+            exit 1
+          fi
+
       - name: Run Playwright tests
         run: pnpm exec playwright test --reporter=list
         env:
