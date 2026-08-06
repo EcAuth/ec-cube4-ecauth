@@ -13,8 +13,8 @@ use Psr\Log\LoggerInterface;
  * 検証内容:
  *   1. JWT ヘッダの alg が RS256 であること（alg=none / HS256 への差し替え拒否）
  *   2. JWKS ({base_url}/.well-known/jwks.json) の公開鍵による RS256 署名検証
- *   3. iss が設定済み Base URL と一致すること
- *   4. aud が自身の client_id と一致すること
+ *   3. iss が設定済み Base URL と完全一致すること
+ *   4. aud が自身の client_id を含むこと、および azp（あれば）が自身であること
  *   5. exp が存在し、有効期限内であること（exp 欠落トークンは拒否）
  *   6. nbf / iat が存在する場合、それらが未来でないこと
  *
@@ -237,16 +237,24 @@ class IdTokenVerifier
      */
     private function validateClaims(array $payload, string $expectedIssuer, string $expectedAudience): bool
     {
-        $issuer = isset($payload['iss']) && is_string($payload['iss']) ? rtrim($payload['iss'], '/') : '';
+        // OIDC Core 3.1.3.7 (2): iss は完全一致で比較する。末尾スラッシュ等を
+        // 吸収してしまうと、末尾スラッシュだけが異なる別 issuer のトークンを
+        // 受け入れてしまう。設定値側は BaseUrlValidator で正規化済み。
+        $issuer = isset($payload['iss']) && is_string($payload['iss']) ? $payload['iss'] : '';
         if (!hash_equals($expectedIssuer, $issuer)) {
             $this->logger->warning('ID token issuer mismatch');
 
             return false;
         }
 
-        if (!$this->audienceMatches($payload['aud'] ?? null, $expectedAudience)) {
+        $audience = $payload['aud'] ?? null;
+        if (!$this->audienceMatches($audience, $expectedAudience)) {
             $this->logger->warning('ID token audience mismatch');
 
+            return false;
+        }
+
+        if (!$this->authorizedPartyMatches($payload, $audience, $expectedAudience)) {
             return false;
         }
 
@@ -272,6 +280,44 @@ class IdTokenVerifier
 
         if (isset($payload['iat']) && (!$this->isTimestamp($payload['iat']) || (int) $payload['iat'] > $now + self::CLOCK_SKEW)) {
             $this->logger->warning('ID token was issued in the future');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * azp（Authorized Party）を検証する。
+     *
+     * OIDC Core 3.1.3.7 (4)(5):
+     *   - aud が複数ある場合、azp の存在を確認しなければならない
+     *   - azp がある場合、その値が自身の client_id と一致することを確認しなければならない
+     *
+     * aud に自分が含まれてさえいれば通す実装だと、別クライアント向けに発行された
+     * （issuer の署名が正当な）トークンを使い回して管理者セッションを確立できてしまう。
+     *
+     * @param array<string, mixed> $payload
+     * @param mixed $audience
+     */
+    private function authorizedPartyMatches(array $payload, $audience, string $expectedAudience): bool
+    {
+        $azp = $payload['azp'] ?? null;
+
+        if ($azp !== null) {
+            if (!is_string($azp) || !hash_equals($expectedAudience, $azp)) {
+                $this->logger->warning('ID token azp does not identify this client');
+
+                return false;
+            }
+
+            return true;
+        }
+
+        // aud が複数あるのに azp が無いと、どのクライアント向けに発行された
+        // トークンなのか判別できない。
+        if (is_array($audience) && count($audience) > 1) {
+            $this->logger->warning('ID token has multiple audiences but no azp claim');
 
             return false;
         }

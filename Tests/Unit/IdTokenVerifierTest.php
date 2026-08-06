@@ -120,11 +120,56 @@ class IdTokenVerifierTest extends TestCase
         self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
     }
 
-    public function testAudienceAsArrayIsAccepted(): void
+    public function testAudienceAsArrayIsAcceptedWhenAzpIdentifiesThisClient(): void
     {
-        $token = self::$key->sign($this->claims(['aud' => ['another-client-id', self::AUDIENCE]]));
+        $token = self::$key->sign($this->claims([
+            'aud' => ['another-client-id', self::AUDIENCE],
+            'azp' => self::AUDIENCE,
+        ]));
 
         self::assertIsArray($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
+    }
+
+    public function testMultipleAudiencesWithoutAzpIsRejected(): void
+    {
+        // OIDC Core 3.1.3.7 (4): aud が複数なら azp の存在確認が必要
+        $token = self::$key->sign($this->claims(['aud' => ['another-client-id', self::AUDIENCE]]));
+
+        self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
+    }
+
+    public function testAzpForAnotherClientIsRejected(): void
+    {
+        // 別クライアント向けに発行された（署名は正当な）トークンの使い回しを防ぐ
+        $token = self::$key->sign($this->claims([
+            'aud' => ['another-client-id', self::AUDIENCE],
+            'azp' => 'another-client-id',
+        ]));
+
+        self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
+    }
+
+    public function testAzpIsCheckedEvenForSingleAudience(): void
+    {
+        // OIDC Core 3.1.3.7 (5): azp があれば aud が単一でも一致を要求する
+        $token = self::$key->sign($this->claims(['azp' => 'another-client-id']));
+
+        self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
+    }
+
+    public function testMatchingAzpWithSingleAudienceIsAccepted(): void
+    {
+        $token = self::$key->sign($this->claims(['azp' => self::AUDIENCE]));
+
+        self::assertIsArray($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
+    }
+
+    public function testIssuerDifferingOnlyByTrailingSlashIsRejected(): void
+    {
+        // OIDC Core 3.1.3.7 (2): iss は完全一致で比較する
+        $token = self::$key->sign($this->claims(['iss' => self::ISSUER.'/']));
+
+        self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
     }
 
     public function testMissingExpIsRejected(): void
