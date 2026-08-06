@@ -34,6 +34,21 @@ class CachedJwksProvider implements JwksProviderInterface
     private const CACHE_TTL = 300;
 
     /**
+     * 強制再取得（kid 不一致時）を許可する最短間隔（秒）。
+     *
+     * kid は id_token のヘッダから来るため、kid を変え続けるトークンを渡されると
+     * キャッシュを迂回して JWKS エンドポイントへのリクエストを増幅できてしまう。
+     * EcAuth 側の設定ミスで「JWKS に無い kid」が発行され続ける状況でも、
+     * ログインのたびに 2 回 HTTP を叩くことになる。クールダウンで上限を設ける。
+     */
+    private const FORCED_REFRESH_COOLDOWN = 60;
+
+    /**
+     * クールダウン中であることを示すマーカーのキー接頭辞。
+     */
+    private const COOLDOWN_KEY_PREFIX = 'ecauth_jwks_forced_';
+
+    /**
      * @var ClientInterface
      */
     private $httpClient;
@@ -87,11 +102,22 @@ class CachedJwksProvider implements JwksProviderInterface
             $item = null;
         }
 
-        if (!$forceRefresh && $item !== null && $item->isHit()) {
-            $cached = $item->get();
-            if (is_array($cached) && $cached !== []) {
-                return $cached;
+        $cached = null;
+        if ($item !== null && $item->isHit()) {
+            $hit = $item->get();
+            if (is_array($hit) && $hit !== []) {
+                $cached = $hit;
             }
+        }
+
+        if (!$forceRefresh && $cached !== null) {
+            return $cached;
+        }
+
+        // 直近に強制再取得したばかりなら、キャッシュを返して外部リクエストを抑える。
+        // キャッシュが空のときは返せるものが無いので取得を許可する。
+        if ($forceRefresh && $cached !== null && !$this->tryConsumeForcedRefresh($baseUrl)) {
+            return $cached;
         }
 
         $keys = $this->fetch($baseUrl);
@@ -110,6 +136,36 @@ class CachedJwksProvider implements JwksProviderInterface
         }
 
         return $keys;
+    }
+
+    /**
+     * 強制再取得のクールダウンを消費する。
+     *
+     * まだクールダウン中なら false を返し、呼び出し側は再取得を見送る。
+     * 許可した場合はマーカーを立てて、次の呼び出しから一定時間ブロックする。
+     */
+    private function tryConsumeForcedRefresh(string $baseUrl): bool
+    {
+        $cooldownKey = self::COOLDOWN_KEY_PREFIX.hash('sha256', $baseUrl);
+
+        try {
+            $marker = $this->cache->getItem($cooldownKey);
+        } catch (CacheInvalidArgumentException $e) {
+            // クールダウンを管理できない場合は従来どおり再取得を許可する
+            return true;
+        }
+
+        if ($marker->isHit()) {
+            $this->logger->warning('Skipping the forced EcAuth JWKS refresh; still in cooldown');
+
+            return false;
+        }
+
+        $marker->set(true);
+        $marker->expiresAfter(self::FORCED_REFRESH_COOLDOWN);
+        $this->cache->save($marker);
+
+        return true;
     }
 
     /**

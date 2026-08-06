@@ -62,6 +62,39 @@ class CachedJwksProviderTest extends TestCase
         self::assertCount(2, $client->requests);
     }
 
+    public function testRepeatedForceRefreshIsRateLimited(): void
+    {
+        // kid を変え続けるトークンで JWKS エンドポイントへのリクエストを
+        // 増幅できないこと（キャッシュがある限りクールダウン中は取りに行かない）
+        $client = new FakeHttpClient([
+            ['status' => 200, 'body' => $this->jwksBody('kid-1')],
+            ['status' => 200, 'body' => $this->jwksBody('kid-2')],
+        ]);
+        $provider = $this->createProvider($client, new ArrayAdapter());
+
+        $provider->getJwks(self::BASE_URL);
+        $provider->getJwks(self::BASE_URL, true);
+        for ($i = 0; $i < 10; ++$i) {
+            $throttled = $provider->getJwks(self::BASE_URL, true);
+            self::assertIsArray($throttled);
+        }
+
+        // 初回取得 + 1 回目の強制再取得のみ。以降はクールダウンで抑制される
+        self::assertCount(2, $client->requests);
+    }
+
+    public function testForceRefreshIsAllowedWhenNothingIsCached(): void
+    {
+        // キャッシュが無ければ返せるものが無いので、クールダウンより取得を優先する
+        $client = new FakeHttpClient([
+            ['status' => 200, 'body' => $this->jwksBody('kid-1')],
+        ]);
+        $provider = $this->createProvider($client, new ArrayAdapter());
+
+        self::assertIsArray($provider->getJwks(self::BASE_URL, true));
+        self::assertCount(1, $client->requests);
+    }
+
     public function testCacheKeyIsDerivedFromBaseUrl(): void
     {
         $client = new FakeHttpClient([
