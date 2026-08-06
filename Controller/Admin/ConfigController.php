@@ -5,6 +5,7 @@ namespace Plugin\EcAuthLogin43\Controller\Admin;
 use Eccube\Controller\AbstractController;
 use Plugin\EcAuthLogin43\Form\Type\Admin\ConfigType;
 use Plugin\EcAuthLogin43\Repository\ConfigRepository;
+use Plugin\EcAuthLogin43\Service\BaseUrlValidator;
 use Plugin\EcAuthLogin43\Service\ClientResolveService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\Form\FormError;
@@ -23,6 +24,11 @@ class ConfigController extends AbstractController
      * @var ClientResolveService
      */
     protected $clientResolveService;
+
+    /**
+     * @var BaseUrlValidator
+     */
+    protected $baseUrlValidator;
 
     /**
      * @var TranslatorInterface
@@ -48,12 +54,14 @@ class ConfigController extends AbstractController
     public function __construct(
         ConfigRepository $configRepository,
         ClientResolveService $clientResolveService,
+        BaseUrlValidator $baseUrlValidator,
         TranslatorInterface $translator,
         string $signupUrl,
         string $mypageUrl
     ) {
         $this->configRepository = $configRepository;
         $this->clientResolveService = $clientResolveService;
+        $this->baseUrlValidator = $baseUrlValidator;
         $this->translator = $translator;
         $this->signupUrl = $signupUrl;
         $this->mypageUrl = $mypageUrl;
@@ -95,10 +103,30 @@ class ConfigController extends AbstractController
                         'mypage_url' => $this->mypageUrl,
                     ];
                 }
-                $Config->setEcauthBaseUrl($resolved['base_url']);
+                $candidateUrl = $resolved['base_url'];
+                // client-resolve 応答も無条件には信頼しない。応答が汚染されると
+                // トークン交換先ごと攻撃者のホストに向く（EcAuthDocs #101）。
+                $errorField = 'client_id';
             } else {
-                $Config->setEcauthBaseUrl(rtrim($inputUrl, '/'));
+                $candidateUrl = $inputUrl;
+                $errorField = 'ecauth_base_url';
             }
+
+            $normalizedUrl = $this->baseUrlValidator->normalize($candidateUrl);
+            if ($normalizedUrl === null) {
+                $form->get($errorField)->addError(
+                    new FormError($this->translator->trans('ecauth_login43.admin.config.base_url.not_allowed')),
+                );
+
+                return [
+                    'form' => $form->createView(),
+                    'has_client_secret' => $hasClientSecret,
+                    'signup_url' => $this->signupUrl,
+                    'mypage_url' => $this->mypageUrl,
+                ];
+            }
+
+            $Config->setEcauthBaseUrl($normalizedUrl);
 
             $clientSecret = $form->get('client_secret')->getData();
             if ($clientSecret !== null && $clientSecret !== '') {

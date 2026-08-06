@@ -8,6 +8,16 @@ parameters:
     # 環境変数 ECAUTH_SIGNUP_URL / ECAUTH_MYPAGE_URL が設定されていればそちらが優先される。
     ecauth_default_signup_url: 'https://ec-auth.io/signup/'
     ecauth_default_mypage_url: 'https://ec-auth.io/mypage/'
+    # EcAuth Base URL として許可するホストのリスト（カンマ区切り）。
+    # Base URL はトークン交換先かつ JWKS の取得先になるため、設定汚染や
+    # client-resolve 応答の改竄で攻撃者のホストに向かないよう許可リストで縛る
+    # （EcAuthDocs #101）。
+    # 環境変数 ECAUTH_ALLOWED_HOSTS が設定されていればそちらが優先される。
+    # ec-auth.io 配下に無い開発・ステージング環境を使う場合は、環境変数側に
+    # 「完全なホスト名」を追加すること。共有ホスティングのサフィックス
+    # （.azurewebsites.net 等）を許可すると、そのサービスの全利用者を信頼する
+    # ことになり本検証の意味が失われる。書式は BaseUrlValidator の docblock を参照。
+    ecauth_default_allowed_hosts: '.ec-auth.io'
 
 services:
     Plugin\EcAuthLogin43\:
@@ -20,7 +30,19 @@ services:
             $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
             $signupUrl: '%env(default:ecauth_default_signup_url:ECAUTH_SIGNUP_URL)%'
             $mypageUrl: '%env(default:ecauth_default_mypage_url:ECAUTH_MYPAGE_URL)%'
+            $allowedHosts: '%env(default:ecauth_default_allowed_hosts:ECAUTH_ALLOWED_HOSTS)%'
             $eccubeTimezone: '%timezone%'
+
+    # JWKS プロバイダ。キャッシュは EC-CUBE 本体の cache.app (PSR-6) を使う。
+    Plugin\EcAuthLogin43\Service\JwksProviderInterface:
+        alias: Plugin\EcAuthLogin43\Service\CachedJwksProvider
+
+    # resource 読み込みで登録された定義を上書きするため、autowire / autoconfigure を明示する。
+    Plugin\EcAuthLogin43\Service\CachedJwksProvider:
+        autowire: true
+        autoconfigure: true
+        arguments:
+            $cache: '@cache.app'
 
     # PSR-18 HTTP クライアント
     # EC-CUBE 4.2+ は本体が guzzlehttp/guzzle:^7 を依存として持つため Guzzle にエイリアス。

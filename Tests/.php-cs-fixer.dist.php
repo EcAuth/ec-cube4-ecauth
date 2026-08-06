@@ -9,6 +9,7 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__.'/../Form',
         __DIR__.'/../Repository',
         __DIR__.'/../Service',
+        __DIR__.'/Unit',
     ])
     ->append([
         __DIR__.'/../EcAuthLoginEvent.php',

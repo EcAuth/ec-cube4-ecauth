@@ -71,6 +71,12 @@ jobs:
         run: docker compose up -d --build --wait
         env:
           ECAUTH_PLUGIN_VERSION: ${{ inputs.plugin_version }}
+          # E2E は staging の EcAuth を指すため、プラグイン既定の許可ホスト
+          # (.ec-auth.io) だけでは設定を保存できない。
+          # .azurewebsites.net のようなサフィックス指定にはしないこと。
+          # 共有ホスティングのサフィックスを許可すると Azure の全利用者を
+          # 信頼することになり、本修正 (EcAuthDocs #101) の意味が失われる。
+          ECAUTH_ALLOWED_HOSTS: .ec-auth.io,ecauth-staging-${{ env.STAGING_WEB_APP_SUFFIX }}.azurewebsites.net
 
       - name: Wait for EC-CUBE to be ready
         run: |

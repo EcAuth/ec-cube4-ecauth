@@ -76,14 +76,18 @@
                         </div>
                     </div>
 
+                    {# 高度な設定の中にエラーがある場合は開いた状態で描画する。
+                       折りたたんだままだとエラー文言が見えず、保存されない理由が分からなくなる
+                       （EcAuthDocs #101 で EcAuth URL の許可リスト検証を追加したため）。 #}
+                    {% set advanced_has_errors = form.ecauth_base_url.vars.errors|length > 0 or form.rp_id.vars.errors|length > 0 %}
                     <div class="card rounded border-0 mb-4">
                         <div class="card-header">
-                            <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#ecauth-advanced-settings" aria-expanded="false" aria-controls="ecauth-advanced-settings">
+                            <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#ecauth-advanced-settings" aria-expanded="{{ advanced_has_errors ? 'true' : 'false' }}" aria-controls="ecauth-advanced-settings">
                                 <i class="fa fa-caret-right me-1"></i>
                                 <span>{{ 'ecauth_login43.admin.config.advanced_settings'|trans }}</span>
                             </button>
                         </div>
-                        <div id="ecauth-advanced-settings" class="collapse">
+                        <div id="ecauth-advanced-settings" class="collapse{{ advanced_has_errors ? ' show' : '' }}">
                             <div class="card-body">
                                 <p class="form-text text-muted mb-3">{{ 'ecauth_login43.admin.config.advanced_settings.help'|trans }}</p>
                                 <div class="row mb-2">

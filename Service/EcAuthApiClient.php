@@ -33,6 +33,11 @@ class EcAuthApiClient
     private $streamFactory;
 
     /**
+     * @var BaseUrlValidator
+     */
+    private $baseUrlValidator;
+
+    /**
      * @var LoggerInterface
      */
     private $logger;
@@ -42,12 +47,14 @@ class EcAuthApiClient
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
+        BaseUrlValidator $baseUrlValidator,
         LoggerInterface $logger
     ) {
         $this->configRepository = $configRepository;
         $this->httpClient = $httpClient;
         $this->requestFactory = $requestFactory;
         $this->streamFactory = $streamFactory;
+        $this->baseUrlValidator = $baseUrlValidator;
         $this->logger = $logger;
     }
 
@@ -189,11 +196,37 @@ class EcAuthApiClient
         return $Config ? $Config->getClientSecret() ?? '' : '';
     }
 
+    /**
+     * 許可リストを通った Base URL のみを返す。許可されない場合は空文字を返し、
+     * 呼び出し側でリクエストを中止させる。
+     *
+     * 設定画面での保存時にも検証しているが、DB を直接書き換えられた場合や
+     * 許可リストを狭めた後に古い値が残っている場合に備え、実行時にも再検証する
+     * （EcAuthDocs #101）。
+     */
     private function getBaseUrl(): string
     {
         $Config = $this->configRepository->get();
+        if ($Config === null) {
+            return '';
+        }
 
-        return $Config ? rtrim($Config->getEcauthBaseUrl() ?? '', '/') : '';
+        // 未設定（プラグイン導入直後）と「設定されているが許可されていない」は
+        // 運用上まったく別の事象なので、前者をここで警告にしない。
+        // 未設定の場合は呼び出し側が "not configured" を記録する。
+        $configured = trim((string) ($Config->getEcauthBaseUrl() ?? ''));
+        if ($configured === '') {
+            return '';
+        }
+
+        $baseUrl = $this->baseUrlValidator->normalize($configured);
+        if ($baseUrl === null) {
+            $this->logger->error('EcAuth Base URL is not allowed');
+
+            return '';
+        }
+
+        return $baseUrl;
     }
 
     /**

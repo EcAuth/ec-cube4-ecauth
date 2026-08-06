@@ -40,6 +40,16 @@ class PasskeyAuthService
     private $passwordHasher;
 
     /**
+     * @var IdTokenVerifier
+     */
+    private $idTokenVerifier;
+
+    /**
+     * @var BaseUrlValidator
+     */
+    private $baseUrlValidator;
+
+    /**
      * @var LoggerInterface
      */
     private $logger;
@@ -50,6 +60,8 @@ class PasskeyAuthService
         ConfigRepository $configRepository,
         EcAuthApiClient $apiClient,
         UserPasswordHasherInterface $passwordHasher,
+        IdTokenVerifier $idTokenVerifier,
+        BaseUrlValidator $baseUrlValidator,
         LoggerInterface $logger
     ) {
         $this->entityManager = $entityManager;
@@ -57,6 +69,8 @@ class PasskeyAuthService
         $this->configRepository = $configRepository;
         $this->apiClient = $apiClient;
         $this->passwordHasher = $passwordHasher;
+        $this->idTokenVerifier = $idTokenVerifier;
+        $this->baseUrlValidator = $baseUrlValidator;
         $this->logger = $logger;
     }
 
@@ -158,9 +172,9 @@ class PasskeyAuthService
             return null;
         }
 
-        $b2bSubject = $this->extractSubFromIdToken($idToken);
+        $b2bSubject = $this->verifyIdTokenAndExtractSub($idToken);
         if ($b2bSubject === null) {
-            $this->logger->error('Failed to extract sub from id_token');
+            $this->logger->error('ID token verification failed');
 
             return null;
         }
@@ -339,30 +353,44 @@ class PasskeyAuthService
     }
 
     /**
-     * ID Token (JWT) から sub クレームを取得する。
-     * 署名検証は EcAuth 側で実施済みのため、ペイロードのデコードのみ行う。
+     * ID Token (JWT) を検証し、sub クレームを取得する。
+     *
+     * sub はこの後 Member の引き当てと管理者セッション確立に直結するため、
+     * 署名・iss・aud・exp をすべて検証してからでなければ採用してはいけない
+     * （EcAuthDocs #101）。Base URL は JWKS の取得先と iss の期待値の両方に
+     * なるので、許可リストを通ったものだけを信頼の起点にする。
      */
-    private function extractSubFromIdToken(string $idToken): ?string
+    private function verifyIdTokenAndExtractSub(string $idToken): ?string
     {
-        $parts = explode('.', $idToken);
-        if (count($parts) !== 3) {
-            return null;
-        }
-
-        $payloadB64 = strtr($parts[1], '-_', '+/');
-        $payloadB64 = str_pad($payloadB64, (int) ceil(strlen($payloadB64) / 4) * 4, '=');
-        $payload = json_decode(base64_decode($payloadB64), true);
-        if (!is_array($payload) || !isset($payload['sub'])) {
-            return null;
-        }
-
-        if (isset($payload['exp']) && $payload['exp'] < time()) {
-            $this->logger->warning('ID token expired');
+        $Config = $this->configRepository->get();
+        if ($Config === null) {
+            $this->logger->error('EcAuth config is not available');
 
             return null;
         }
 
-        return $payload['sub'];
+        $configured = trim((string) ($Config->getEcauthBaseUrl() ?? ''));
+        if ($configured === '') {
+            $this->logger->error('EcAuth Base URL is not configured; refusing to verify ID token');
+
+            return null;
+        }
+
+        $baseUrl = $this->baseUrlValidator->normalize($configured);
+        if ($baseUrl === null) {
+            $this->logger->error('EcAuth Base URL is not allowed; refusing to verify ID token');
+
+            return null;
+        }
+
+        $clientId = (string) ($Config->getClientId() ?? '');
+
+        $payload = $this->idTokenVerifier->verify($idToken, $baseUrl, $clientId);
+        if ($payload === null) {
+            return null;
+        }
+
+        return (string) $payload['sub'];
     }
 
     private function generateUuidV4(): string
