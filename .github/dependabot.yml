@@ -1,14 +1,103 @@
 version: 2
+
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "composer"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+  # GitHub Actions の自動更新
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # minor/patch と major の 2 PR に集約する。
+    # patterns を "*" にしているのは、サードパーティ actions
+    # （anthropics/* 1password/* shivammathur/* softprops/* pnpm/* 等）を
+    # 取りこぼさないため。
+    groups:
+      github-actions-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      github-actions-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+  # Composer パッケージの自動更新
+  # require は PSR インタフェースと ec-cube/plugin-installer のみ、
+  # require-dev は静的解析・テストツール（phpstan / rector / php-cs-fixer /
+  # phpunit）。いずれも major 更新の影響は CI（composer phpstan / rector /
+  # cs-check）が検出できるため minor/patch と major の 2 PR に集約する。
+  #
+  # 注意: このプラグインは PHP 7.4 互換を維持する必要がある
+  # （CLAUDE.md「コーディング規約」参照）。major 更新 PR をマージする前に
+  # rector.php の phpVersion 固定と .php-cs-fixer.dist.php の設定が
+  # 引き続き 7.4 互換を保っているか確認すること。
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "composer"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    allow:
+      - dependency-type: "all"
+    groups:
+      composer-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      composer-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+  # npm パッケージの自動更新
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    allow:
+      - dependency-type: "all"
+    groups:
+      npm-minor:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      npm-major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
