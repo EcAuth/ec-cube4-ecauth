@@ -41,7 +41,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Load secrets from 1Password
-        uses: 1password/load-secrets-action@eb2efd0703da22a93c467f2d1ffbb6826c11e19c # v4.1.1
+        uses: 1password/load-secrets-action@e544b780808654ba8ceba5fb2fe2897103d92ff4 # v5.0.0
         with:
           export-env: true
         env:
@@ -57,7 +57,7 @@ jobs:
       # fork からの PR には secrets が無いので、この分岐は必須。
       - name: Load EC-CUBE verification key from 1Password
         if: ${{ inputs.install_source == 'package-api' }}
-        uses: 1password/load-secrets-action@eb2efd0703da22a93c467f2d1ffbb6826c11e19c # v4.1.1
+        uses: 1password/load-secrets-action@e544b780808654ba8ceba5fb2fe2897103d92ff4 # v5.0.0
         with:
           export-env: true
         env:
