@@ -210,6 +210,54 @@ ec-cube4-ecauth/
   - `bin/console debug:container --env-vars` で env 使用箇所を一覧できる
   - env 未設定時のフォールバック値がコードではなく config に集約される
 
+## EcAuth 連携で踏みやすい罠
+
+### ecauth_subject は接続先テナント（client_id）を変えたらクリアが要る
+
+`PasskeyAuthService::ensureB2BUser()` は `b2b_subject` を `dtb_member.ecauth_subject` に
+永続化し、値があれば**無条件に再利用**する。一方 EcAuth 側の `B2BUser.Subject` は
+Organization をまたいでグローバル一意なので、**テスト用テナントの `client_id` で試した後に
+本番用へ差し替えると、別 Organization に同じ subject を登録しようとして必ず失敗する**
+（`register/options` が 400、EcAuth 側ログに `Failed to create or retrieve B2BUser: <uuid>`）。
+
+`reconcileEcauthSubjectFromOptions()` は救ってくれない。あれは `register/options` が 200 を
+返した後の突き合わせなので、400 で弾かれるこのケースでは呼ばれる前に return する。
+
+そのため `ConfigController::index()` が保存前後の `client_id` を比較し、変わっていれば
+`PasskeyAuthService::clearAllEcauthSubjects()` で一括クリアする（#52）。テナントを移す以上、
+旧 subject に紐づくパスキーはどのみち使えないため実害はない。設定画面は送信前に
+`confirm()` を挟むが、**確認はあくまで UI 上の保険**で、クリアの判断はサーバー側の
+新旧比較が行う（`curl` 等 JS を経由しない送信でも整合する）。
+
+`dtb_customer` 側は触らない。あちらは B2C の `sub` で、発番するのはプラグインではなく
+EcAuth 側であり、テナントが変われば別の値が降ってきて衝突しないため。
+
+判定条件（初回登録・同値・空白差ではクリアしない等）は EC-CUBE 非依存の
+`Service/TenantChangePolicy` に切り出してある。`phpunit.xml.dist` は EC-CUBE のカーネルを
+起動しないため、コントローラやサービスに直接書くとユニットテストで固定できない。
+
+### フォームは「管理対象エンティティ」に直接バインドされる
+
+`ConfigController` は `configRepository->get()` が返す managed entity をそのまま
+`createForm()` に渡す。したがって **`handleRequest()` を通した時点で `$Config` の値は
+入力値で上書きされている**。「保存前の値」と比較したい場合は `handleRequest()` より前に
+退避しておくこと。2 系（配列で設定を持つ）から移植するときに最も間違えやすい点。
+
+なお `flush()` を呼ばずに return する経路では、managed entity を書き換えていても
+永続化されない（`TransactionListener` は commit するだけで flush はしない）。
+バリデーションエラーで抜ける経路が副作用を残さないのはこのため。
+
+`update_date` は EC-CUBE 本体の `SaveEventSubscriber::preUpdate()` が自動更新するので
+明示設定は不要。ただし**これは UnitOfWork 経由のときだけ効く**。DQL の bulk UPDATE で
+書き換えると発火しないので、件数が小さいならエンティティを load して書き換える。
+
+### form_widget の attr に id を渡しても上書きされない
+
+`{{ form_widget(form.foo, { attr: { id: 'my-id' } }) }}` と書くと、Symfony が出力する
+`id="form_foo"` は消えず **`id` 属性が 2 つ並ぶ**。HTML パーサは先勝ちなので後ろは無視され、
+`getElementById('my-id')` は `null` を返す（JS が静かに何もしなくなる）。
+テンプレート側から要素を掴むときは `{{ form.foo.vars.id }}` で本来の id を引くこと。
+
 ## セキュリティ注意事項
 
 - client_secret はサーバーサイドのみ。JS に渡さない
