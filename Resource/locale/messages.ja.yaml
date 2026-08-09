@@ -26,6 +26,7 @@ ecauth_login43.admin.config.tenant_changed.confirm: Client ID を変更しよう
 ecauth_login43.admin.config.tenant_changed.secret_required: Client ID を変更する場合は、新しい接続先の Client Secret も入力してください。前の接続先の Client Secret は使用できません。
 ecauth_login43.admin.config.tenant_changed.cleared: 接続先のテナントが変わったため、登録済みのパスキー %count% 件分の紐付けを解除しました。パスキー管理から登録し直してください。
 ecauth_login43.admin.config.tenant_changed.no_target: 接続先のテナントが変わりました。
+ecauth_login43.admin.config.tenant_changed.base_url_reused: 新しい Client ID から EcAuth URL を解決できなかったため、これまでの EcAuth URL (%url%) をそのまま使用します。接続先が正しいか確認してください。
 ecauth_login43.admin.config.base_url.not_allowed: EcAuth URL が許可されていないホストを指しています。https で始まる正しい EcAuth の URL を指定してください。開発・ステージング環境のホストを使う場合は、環境変数 ECAUTH_ALLOWED_HOSTS に追加してください。
 ecauth_login43.admin.config.required: 必須
 ecauth_login43.admin.config.save: 登録

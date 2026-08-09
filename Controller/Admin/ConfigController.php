@@ -133,24 +133,40 @@ class ConfigController extends AbstractController
             }
 
             $inputUrl = trim((string) $Config->getEcauthBaseUrl());
+            $discardedBaseUrl = '';
             if ($this->tenantChangePolicy->shouldDiscardBaseUrlInput($clientIdChanged, $inputUrl, $savedBaseUrl)) {
                 // 事前入力のまま＝前の接続先の URL。捨てて新しい client_id から解決し直す。
+                // ただし解決に失敗したときのために、捨てた値は候補として持っておく。
+                $discardedBaseUrl = $inputUrl;
                 $inputUrl = '';
             }
 
+            $reusedBaseUrl = null;
             if ($inputUrl === '') {
                 $resolved = $this->clientResolveService->resolve((string) $Config->getClientId());
-                if (!$resolved['success']) {
+                if ($resolved['success']) {
+                    $candidateUrl = $resolved['base_url'];
+                    // client-resolve 応答も無条件には信頼しない。応答が汚染されると
+                    // トークン交換先ごと攻撃者のホストに向く（EcAuthDocs #101）。
+                    $errorField = 'client_id';
+                } elseif ($discardedBaseUrl !== '') {
+                    // 解決できないなら、採れる候補は捨てた入力しか無い。ここで弾くと
+                    // 「同じ EcAuth を複数テナントで共有し、URL を手動指定している」
+                    // staging / 開発環境で接続先を切り替えられなくなる。しかも
+                    // client_resolve.failed は「高度な設定で URL を直接指定してください」と
+                    // 案内するのに、その値を捨てた結果のエラーなので、指示どおり同じ値を
+                    // 入れ直しても同じところに戻ってきてしまう（#59 レビュー指摘）。
+                    // 黙って引き継ぐのではなく、下の警告で管理者に確認を促す。
+                    $candidateUrl = $discardedBaseUrl;
+                    $errorField = 'ecauth_base_url';
+                    $reusedBaseUrl = $discardedBaseUrl;
+                } else {
                     $form->get('client_id')->addError(
                         new FormError($this->translator->trans('ecauth_login43.admin.config.client_resolve.failed')),
                     );
 
                     return $this->createViewParameters($form, $hasClientSecret, $previousClientId);
                 }
-                $candidateUrl = $resolved['base_url'];
-                // client-resolve 応答も無条件には信頼しない。応答が汚染されると
-                // トークン交換先ごと攻撃者のホストに向く（EcAuthDocs #101）。
-                $errorField = 'client_id';
             } else {
                 $candidateUrl = $inputUrl;
                 $errorField = 'ecauth_base_url';
@@ -183,7 +199,13 @@ class ConfigController extends AbstractController
             $this->addSuccess('ecauth_login43.admin.config.save.success', 'admin');
 
             if ($clientIdChanged) {
-                $this->onTenantChanged($request->getSession(), $cleared);
+                // 引き継いだ URL は保存されたもの（正規化後）を出す。入力の表記ゆれを
+                // そのまま見せると、実際に保存された値と食い違って確認の役に立たない。
+                $this->onTenantChanged(
+                    $request->getSession(),
+                    $cleared,
+                    $reusedBaseUrl === null ? null : $normalizedUrl,
+                );
             }
 
             return $this->redirectToRoute('ecauth_login43_admin_config');
@@ -198,8 +220,10 @@ class ConfigController extends AbstractController
      * ecauth_subject のクリアは flush 済みの前提でここに来る。
      *
      * @param int $cleared クリアした ecauth_subject の件数
+     * @param string|null $reusedBaseUrl client_id から解決できず、前の接続先の URL を
+     *                                   そのまま引き継いだ場合はその URL。通常は null
      */
-    protected function onTenantChanged(SessionInterface $session, int $cleared): void
+    protected function onTenantChanged(SessionInterface $session, int $cleared, ?string $reusedBaseUrl = null): void
     {
         // 旧テナントで取得した access_token / credential_id / 進行中の session_id は
         // もう通用しない。残すとパスキー管理画面が不可解なエラーで一覧取得に失敗する。
@@ -218,6 +242,16 @@ class ConfigController extends AbstractController
             : $this->translator->trans('ecauth_login43.admin.config.tenant_changed.cleared', ['%count%' => $cleared]);
 
         $this->addWarning($message, 'admin');
+
+        if ($reusedBaseUrl !== null) {
+            $this->addWarning(
+                $this->translator->trans(
+                    'ecauth_login43.admin.config.tenant_changed.base_url_reused',
+                    ['%url%' => $reusedBaseUrl],
+                ),
+                'admin',
+            );
+        }
     }
 
     /**

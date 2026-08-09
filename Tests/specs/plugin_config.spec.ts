@@ -167,10 +167,14 @@ test.describe('プラグイン設定画面', () => {
  */
 test.describe.serial('#52: 接続先テナントの切り替え', () => {
   const CLIENT_ID_INPUT = 'input[name="config[client_id]"]';
+  // serial なので、各 test は「直前の test が保存した状態」から始まる。
+  // client_id を A → B → C と一方向に進めることで、どの test でも
+  // 「保存済みと違う値を入れる＝テナント変更」が成立するようにしている。
   const TENANT_A = 'ecauth-e2e-tenant-a';
   const TENANT_B = 'ecauth-e2e-tenant-b';
+  const TENANT_C = 'ecauth-e2e-tenant-c';
   const TENANT_A_URL = 'https://e2e-tenant-a.ec-auth.io';
-  const TENANT_B_URL = 'https://e2e-tenant-b.ec-auth.io';
+  const TENANT_C_URL = 'https://e2e-tenant-c.ec-auth.io';
 
   test.beforeEach(async ({ page }) => {
     await page.goto(`${ADMIN_URL}/login`);
@@ -231,7 +235,13 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_A);
   });
 
-  test('Client ID 変更時は事前入力の Base URL を引き継がず再解決する', async ({ page }) => {
+  // 事前入力の Base URL は「まず捨てて client_id から解決し直す」が、解決できなければ
+  // 捨てた値に戻す。ここで弾いてしまうと、同じ EcAuth を複数テナントで共有し URL を
+  // 手動指定している staging / 開発環境で接続先を切り替える手段が無くなる（#59 レビュー指摘）。
+  //
+  // 引き継いだこと自体は警告で可視化する。この警告が出ること＝「入力を鵜呑みにせず
+  // 再解決を試みたうえで諦めた」ことの証拠になる（鵜呑みなら警告は出ない）。
+  test('Client ID 変更時に再解決できなければ、既存の Base URL を引き継いで警告する', async ({ page }) => {
     // client-resolve は実ネットワークを叩くため、失敗時のタイムアウトを見込む
     test.setTimeout(90000);
     captureDialogs(page, 'accept');
@@ -242,13 +252,40 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     await page.fill('input[name="config[client_secret]"]', 'secret-for-tenant-b');
     await page.click('button[type="submit"]');
 
-    // 事前入力を捨てて client_id から解決し直すため、解決に失敗して弾かれる。
-    // 引き継いでいたら「テナント A の URL」で保存が通ってしまう。
+    await expect(page.locator('.alert-success')).toBeVisible();
+    await expect(
+      page.locator('.alert-warning', { hasText: 'EcAuth URL を解決できなかったため' }),
+    ).toBeVisible();
+    // 行き止まりにしない。以前は client_resolve.failed で弾いており、しかもその文言は
+    // 「高度な設定で URL を直接指定してください」と、既に指定済みの操作を案内していた。
+    await expect(page.locator('text=Client ID に対応するテナントが見つかりませんでした')).toHaveCount(0);
+
+    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_B);
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_A_URL);
+  });
+
+  // 引き継ぎ先が無い（Base URL 未設定）ときは従来どおり弾く。他に採れる候補が無く、
+  // 解決できない client_id をそのまま保存しても動かないため。
+  test('Base URL 未設定で Client ID を解決できなければ保存できない', async ({ page }) => {
+    test.setTimeout(90000);
+    captureDialogs(page, 'accept');
+
+    await page.click(ADVANCED_TOGGLE);
+    await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
+    await page.fill('input[name="config[ecauth_base_url]"]', '');
+    await page.fill(CLIENT_ID_INPUT, TENANT_C);
+    await page.fill('input[name="config[client_secret]"]', 'secret-for-tenant-c');
+
+    await page.click('button[type="submit"]');
+
     await expect(page.locator('text=Client ID に対応するテナントが見つかりませんでした')).toBeVisible();
     await expect(page.locator('.alert-success')).toHaveCount(0);
 
+    // 弾かれた以上、副作用も残っていないこと
     await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
-    await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_A);
+    await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_B);
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_A_URL);
   });
@@ -256,11 +293,11 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
   test('Client ID を変更して保存すると、パスキー紐付け解除の警告が出る', async ({ page }) => {
     captureDialogs(page, 'accept');
 
-    await page.fill(CLIENT_ID_INPUT, TENANT_B);
-    await page.fill('input[name="config[client_secret]"]', 'secret-for-tenant-b');
+    await page.fill(CLIENT_ID_INPUT, TENANT_C);
+    await page.fill('input[name="config[client_secret]"]', 'secret-for-tenant-c');
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
-    await page.fill('input[name="config[ecauth_base_url]"]', TENANT_B_URL);
+    await page.fill('input[name="config[ecauth_base_url]"]', TENANT_C_URL);
 
     await page.click('button[type="submit"]');
 
@@ -268,12 +305,16 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     // 対象 0 件なら「接続先のテナントが変わりました。」、1 件以上なら
     // 「接続先のテナントが変わったため、…紐付けを解除しました。」。
     // 先行 spec がパスキーを登録しているかで件数が変わるため共通部分で見る。
-    await expect(page.locator('.alert-warning')).toContainText('接続先のテナントが変わ');
+    await expect(page.locator('.alert-warning', { hasText: '接続先のテナントが変わ' })).toBeVisible();
+    // URL は明示指定したので、引き継ぎの警告は出ない
+    await expect(
+      page.locator('.alert-warning', { hasText: 'EcAuth URL を解決できなかったため' }),
+    ).toHaveCount(0);
 
     await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
-    await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_B);
+    await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_C);
     await page.click(ADVANCED_TOGGLE);
-    await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_B_URL);
+    await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_C_URL);
   });
 
   test('Client ID を変えずに保存したときは確認も警告も出ない', async ({ page }) => {

@@ -53,6 +53,12 @@ class TenantChangePolicy
      *
      * 逆に保存済みと違う値が入っていれば管理者が意図して指定したものなので
      * 尊重する（開発・ステージングの手動指定を潰さないため）。
+     *
+     * ここで true を返しても「その URL を使わない」とは限らない。呼び出し側は
+     * 再解決に失敗したときに捨てた値へフォールバックする。同じ EcAuth を複数
+     * テナントで共有し URL を手動指定している環境では、捨てたまま弾くと接続先を
+     * 切り替える手段が無くなるため（#59 レビュー指摘）。あくまで
+     * 「解決できるなら新しい client_id 由来の URL を優先する」という優先順位付け。
      */
     public function shouldDiscardBaseUrlInput(bool $clientIdChanged, ?string $inputBaseUrl, ?string $savedBaseUrl): bool
     {
