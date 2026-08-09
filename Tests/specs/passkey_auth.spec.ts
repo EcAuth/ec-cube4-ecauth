@@ -21,6 +21,17 @@ test.describe('パスキーログインフロー', () => {
     await expect(passkeyBtn).toHaveText(/パスキーでログイン/);
   });
 
+  // #58: パスキー未登録の管理者に手がかりを残すため、ボタン自体に常設の案内を出す。
+  // ログイン画面は EC-CUBE 本体のテンプレートなので、案内文の要素を差し込むと
+  // 本体の変更に追従しづらい。title（ツールチップ）なら DOM 構造に手を入れずに済む。
+  test('#58: パスキーボタンに初回利用者向けの案内が title で表示される', async ({ page }) => {
+    await page.goto(`${ADMIN_URL}/login`);
+
+    const passkeyBtn = page.locator('#ecauth-passkey-login');
+    await expect(passkeyBtn).toHaveAttribute('title', /パスワードでログイン/);
+    await expect(passkeyBtn).toHaveAttribute('title', /パスキー管理/);
+  });
+
   test('パスキーボタンクリックで認証フローが開始される', async ({ page, context }) => {
     // Virtual Authenticator を設定
     const cdpSession = await context.newCDPSession(page);
@@ -372,6 +383,97 @@ test.describe.serial('E2E: パスキー登録からログイン完了までの�
     await page.goto(`${ADMIN_URL}/`);
     await expect(page).toHaveURL(/\/admin\/?$/);
     await expect(page.locator('h2', { hasText: 'ホーム' })).toBeVisible();
+  });
+
+  // リグレッション (#58): パスキー未登録の管理者が「パスキーでログイン」を押したとき、
+  // 案内ダイアログが出ること。
+  //
+  // ログイン画面は誰がログインするか未確定なので b2b_subject を送らず、EcAuth は
+  // Organization 内の全クレデンシャルを allowCredentials に詰めて返す。そのため
+  // パスキー未登録の管理者が押すと「他人のパスキーだけが許可された」状態で
+  // credentials.get() が呼ばれ NotAllowedError になる。以前はこれを無条件に
+  // 握り潰していたため、ボタンのラベルが戻るだけで何も起きなかった。
+  //
+  // 「サーバーには登録済み・この端末には無い」状態を作るため、資格情報を持たない
+  // 仮想オーセンティケータを載せた別 context で検証する。共有 page の
+  // WebAuthn.clearCredentials で作らないのは、/admin/login がログイン済みだと
+  // リダイレクトされてボタンに到達できないため。後続の一覧テストが使う
+  // セッションとパスキーには一切触れない。
+  test('#58: パスキー未登録の端末で押すと案内ダイアログが表示される', async ({ browser }) => {
+    // options 取得は staging EcAuth 往復で、credentials.get のタイムアウトも
+    // サーバー由来 (既定 60s) になりうるため、通常より長めに取る。
+    test.setTimeout(120000);
+
+    const freshContext = await browser.newContext({ ignoreHTTPSErrors: true });
+    // EcAuth が timeout=0 を返すケースに備える (共有 context と同じ理由)
+    await freshContext.addInitScript(() => {
+      const originalGet = navigator.credentials.get.bind(navigator.credentials);
+      navigator.credentials.get = async (options?: CredentialRequestOptions) => {
+        if (options?.publicKey && (!options.publicKey.timeout || options.publicKey.timeout === 0)) {
+          options.publicKey.timeout = 60000;
+        }
+
+        return originalGet(options);
+      };
+    });
+
+    const freshPage = await freshContext.newPage();
+    let freshCdp: CDPSession | undefined;
+    let freshAuthenticatorId: string | undefined;
+
+    try {
+      await freshPage.goto(`${ADMIN_URL}/login`);
+      await freshPage.waitForLoadState('domcontentloaded');
+
+      freshCdp = await freshContext.newCDPSession(freshPage);
+      await freshCdp.send('WebAuthn.enable');
+      const created = await freshCdp.send('WebAuthn.addVirtualAuthenticator', {
+        options: {
+          protocol: 'ctap2',
+          transport: 'internal',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          isUserVerified: true,
+          automaticPresenceSimulation: true,
+        },
+      });
+      freshAuthenticatorId = created.authenticatorId;
+
+      // この認証器には資格情報を登録しない (= 端末側にパスキーが無い状態)
+      const { credentials } = await freshCdp.send('WebAuthn.getCredentials', {
+        authenticatorId: freshAuthenticatorId,
+      });
+      expect(credentials).toEqual([]);
+
+      const dialogs: string[] = [];
+      freshPage.on('dialog', async (dialog) => {
+        dialogs.push(dialog.message());
+        await dialog.accept().catch(() => {});
+      });
+
+      const passkeyBtn = freshPage.locator('#ecauth-passkey-login');
+      await expect(passkeyBtn).toBeVisible();
+      await passkeyBtn.click();
+
+      // 無言で終わらないこと。文面はキャンセルと「該当パスキー無し」の両方に
+      // 当てはまるものにしたうえで、次に何をすればよいかを併記する。
+      await expect.poll(() => dialogs.length, { timeout: 75000 }).toBeGreaterThan(0);
+      expect(dialogs[0]).toContain('パスキーが見つからないか');
+      expect(dialogs[0]).toContain('パスワードでログイン');
+
+      // ボタンが押せる状態に戻り、ログイン画面から離脱していないこと
+      await expect(passkeyBtn).toBeEnabled();
+      await expect(passkeyBtn).toHaveText('パスキーでログイン');
+      await expect(freshPage).toHaveURL(/\/admin\/login/);
+    } finally {
+      if (freshCdp && freshAuthenticatorId) {
+        await freshCdp
+          .send('WebAuthn.removeVirtualAuthenticator', { authenticatorId: freshAuthenticatorId })
+          .catch(() => {});
+      }
+      await freshCdp?.detach().catch(() => {});
+      await freshContext.close().catch(() => {});
+    }
   });
 
   // パスキーログイン直後 (session に access_token / current_credential_id が

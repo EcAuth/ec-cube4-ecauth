@@ -59,8 +59,12 @@
                                     <span class="badge badge-primary ms-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
                                 </div>
                                 <div class="col">
-                                    {{ form_widget(form.client_id) }}
+                                    {# attr に id を渡しても Symfony が出力する id="config_client_id" が消えず
+                                       id 属性が 2 つ並ぶ（HTML パーサは先勝ちなので後ろは無視される）。
+                                       JS 側は form.client_id.vars.id で本来の id を引く。 #}
+                                    {{ form_widget(form.client_id, { attr: { 'data-saved': saved_client_id } }) }}
                                     {{ form_errors(form.client_id) }}
+                                    <p class="form-text text-muted" id="ecauth-client-id-caution">{{ 'ecauth_login43.admin.config.tenant_changed.caution'|trans }}</p>
                                 </div>
                             </div>
                             <div class="row mb-2">
@@ -152,4 +156,37 @@
             </div>
         </div>
     </form>
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        // Client ID を書き換えたまま保存しようとしたら確認する。
+        //
+        // これは UI 上の保険にすぎない。実際に ecauth_subject をクリアするかどうかは
+        // ConfigController が保存前後の client_id を比較して決めるので、JS を経由しない
+        // 送信（curl 等）でもサーバー側の判断と食い違わない。
+        document.addEventListener('DOMContentLoaded', function () {
+            var input = document.getElementById('{{ form.client_id.vars.id }}');
+            if (!input || !input.form) {
+                return;
+            }
+
+            var CONFIRM_MESSAGE = '{{ 'ecauth_login43.admin.config.tenant_changed.confirm'|trans|e('js') }}';
+
+            input.form.addEventListener('submit', function (event) {
+                var saved = (input.getAttribute('data-saved') || '').trim();
+                var current = input.value.trim();
+
+                // 初回登録（保存済みが空）と、変更なしのときは確認しない。
+                // 判定条件は TenantChangePolicy::hasClientIdChanged() と揃えてある。
+                if (saved === '' || saved === current) {
+                    return;
+                }
+
+                if (!window.confirm(CONFIRM_MESSAGE)) {
+                    event.preventDefault();
+                }
+            });
+        });
+    </script>
 {% endblock %}

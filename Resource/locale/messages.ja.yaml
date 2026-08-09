@@ -21,6 +21,12 @@ ecauth_login43.admin.config.rp_id.help: 未設定の場合、サイトのホス�
 ecauth_login43.admin.config.advanced_settings: 高度な設定
 ecauth_login43.admin.config.advanced_settings.help: 通常は変更不要です。ステージング・開発環境や RP ID のカスタマイズが必要な場合のみ使用してください。
 ecauth_login43.admin.config.client_resolve.failed: Client ID に対応するテナントが見つかりませんでした。Client ID を確認するか、高度な設定で EcAuth URL を直接指定してください。
+ecauth_login43.admin.config.tenant_changed.caution: Client ID を変更すると接続先のテナントが変わります。登録済みのパスキーはすべて使えなくなり、パスキー管理から登録し直しが必要になります。
+ecauth_login43.admin.config.tenant_changed.confirm: Client ID を変更しようとしています。接続先のテナントが変わるため、登録済みのパスキーはすべて使えなくなり、パスキー管理からの登録し直しが必要になります。よろしいですか？
+ecauth_login43.admin.config.tenant_changed.secret_required: Client ID を変更する場合は、新しい接続先の Client Secret も入力してください。前の接続先の Client Secret は使用できません。
+ecauth_login43.admin.config.tenant_changed.cleared: 接続先のテナントが変わったため、登録済みのパスキー %count% 件分の紐付けを解除しました。パスキー管理から登録し直してください。
+ecauth_login43.admin.config.tenant_changed.no_target: 接続先のテナントが変わりました。
+ecauth_login43.admin.config.tenant_changed.base_url_reused: 新しい Client ID から EcAuth URL を解決できなかったため、これまでの EcAuth URL (%url%) をそのまま使用します。接続先が正しいか確認してください。
 ecauth_login43.admin.config.base_url.not_allowed: EcAuth URL が許可されていないホストを指しています。https で始まる正しい EcAuth の URL を指定してください。開発・ステージング環境のホストを使う場合は、環境変数 ECAUTH_ALLOWED_HOSTS に追加してください。
 ecauth_login43.admin.config.required: 必須
 ecauth_login43.admin.config.save: 登録
@@ -63,6 +69,10 @@ ecauth_login43.admin.passkey.current: ログイン中
 # ログイン画面
 ecauth_login43.admin.login.passkey_button: パスキーでログイン
 ecauth_login43.admin.login.passkey.error: パスキー認証に失敗しました。
+# NotAllowedError は「利用者がキャンセルした」場合と「該当するパスキーが端末に無い」
+# 場合の両方で発生し、ブラウザ API 上は区別できない。双方に当てはまる文面にする（#58）。
+ecauth_login43.admin.login.passkey.not_found: パスキーが見つからないか、認証がキャンセルされました。
+ecauth_login43.admin.login.passkey.hint: このアカウントで初めてパスキーを使う場合は、パスワードでログインしてから「設定 → EcAuth → パスキー管理」でパスキーを登録してください。
 ecauth_login43.admin.login.passkey.not_supported: お使いのブラウザはパスキー認証に対応していません。
 ecauth_login43.admin.login.passkey.https_required: パスキー認証にはHTTPS接続が必要です。
 

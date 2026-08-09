@@ -101,6 +101,48 @@ class PasskeyAuthService
     }
 
     /**
+     * 全 Member の ecauth_subject をクリアする。
+     *
+     * 接続先テナント（client_id）を差し替えたときに使う。ecauth_subject は EcAuth 側の
+     * B2BUser.Subject と 1:1 で、EcAuth では Subject が Organization をまたいで
+     * グローバル一意なため、旧テナントで発番済みの subject を残したまま client_id を
+     * 変えると、新テナントへの登録が一意制約に阻まれ register/options が必ず 400 に
+     * なる（#52）。クリアすれば次回登録時に新しい UUID が発番され、正常に登録できる。
+     * テナントを移す以上、旧 subject に紐づくパスキーはどのみち使えないため実害はない。
+     *
+     * 対象は dtb_member（B2B パスキー）のみ。dtb_customer 側の sub を発番するのは
+     * プラグインではなく EcAuth であり、テナントが変われば別の値が降ってきて
+     * 衝突しないため触らない。
+     *
+     * bulk UPDATE (DQL) ではなくエンティティを load して null を代入するのは、
+     * EC-CUBE 本体の SaveEventSubscriber::preUpdate() による update_date の自動更新が
+     * UnitOfWork を経由しないと効かないため。管理者数は現実的に小さいので問題ない。
+     *
+     * flush() は呼ばない。呼び出し側の 1 回の flush で Config の保存と同一
+     * トランザクションに載せ、「subject だけ消えて client_id は元のまま」といった
+     * 中途半端な状態を作らないため。
+     *
+     * @return int クリア対象になった件数
+     */
+    public function clearAllEcauthSubjects(): int
+    {
+        $Members = $this->memberRepository->createQueryBuilder('m')
+            ->where('m.ecauth_subject IS NOT NULL')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($Members as $Member) {
+            $Member->setEcauthSubject(null);
+        }
+
+        $this->logger->info('Cleared ecauth_subject for tenant switch', [
+            'member_count' => count($Members),
+        ]);
+
+        return count($Members);
+    }
+
+    /**
      * コールバック処理: state検証 → トークン交換 → Member検索 → セッション確立
      *
      * @param string $code 認可コード
