@@ -5,6 +5,7 @@ parameters:
         - Entity
         - Form
         - Repository
+        - Security
         - Service
         - EcAuthLoginEvent.php
         - EcAuthLoginNav.php

@@ -82,6 +82,24 @@ test.describe('プラグイン設定画面', () => {
     await expect(mypage).toHaveAttribute('rel', /noopener/);
   });
 
+  // パスワード認証の無効化は環境変数でしか切り替えられない（管理画面から戻せると、
+  // 乗っ取られた時点でパスワード認証を復活させられてしまうため）。設定画面は状態と
+  // 切り替え方を表示するだけで、フォーム項目は持たない。
+  // 無効化した状態そのものの検証は Tests/specs/disable_admin_password.spec.ts 側。
+  test('管理画面のパスワード認証の状態が表示される（既定は有効）', async ({ page }) => {
+    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+
+    const status = page.locator('#ecauth-password-login-status');
+    await expect(status).toBeVisible();
+    await expect(status).toHaveAttribute('data-status', 'enabled');
+
+    // 切り替えに使う環境変数名が画面に出ていること（README を見に行かなくても分かる）
+    await expect(page.locator('text=ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN').first()).toBeVisible();
+
+    // 管理画面から切り替えられないので、入力欄やトグルは存在しない
+    await expect(page.locator('input[name*="password_login"]')).toHaveCount(0);
+  });
+
   test('高度な設定がデフォルトで折りたたまれている', async ({ page }) => {
     await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
 

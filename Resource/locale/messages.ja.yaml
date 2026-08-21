@@ -37,6 +37,19 @@ ecauth_login43.admin.config.next_step.description.ready: 接続設定が完了�
 ecauth_login43.admin.config.next_step.description.pending: 接続設定を保存すると、管理者用パスキーの登録に進めます。
 ecauth_login43.admin.config.next_step.link: パスキーを登録する
 
+# 管理画面のパスワード認証（設定画面のステータスカード）
+# %env% には Service/AdminPasswordLoginPolicy::ENV_NAME が入る。
+ecauth_login43.admin.config.password_login.header: 管理画面のパスワード認証
+ecauth_login43.admin.config.password_login.status: 現在の状態
+ecauth_login43.admin.config.password_login.status.enabled: 有効（ID とパスワードでログインできます）
+ecauth_login43.admin.config.password_login.status.disabled: 無効（パスキーでのみログインできます）
+ecauth_login43.admin.config.password_login.description: 管理画面のパスワード認証を無効にすると、不正に作られた管理者アカウントでログインされることを防げます。切り替えは環境変数 %env% で行い、管理画面からは変更できません。管理画面を乗っ取られてもパスワード認証を戻せないようにするためです。
+ecauth_login43.admin.config.password_login.how_to.disable: '無効にする: EC-CUBE の .env に %env%=1 を追記します（Web サーバーやコンテナの環境変数として設定しても構いません）。'
+ecauth_login43.admin.config.password_login.how_to.enable: '有効に戻す: %env% を 0 にするか、設定ごと削除します。'
+ecauth_login43.admin.config.password_login.caution.before_disable: 無効にする前に、少なくとも 1 人の管理者がパスキーを登録済みであることを必ず確認してください。誰も登録していない状態で無効にすると、管理画面にログインできなくなります。
+ecauth_login43.admin.config.password_login.caution.lost_passkey: パスキーを紛失したときは、%env% を 0 に戻せばパスワードでログインできます。
+ecauth_login43.admin.config.password_login.caution.new_member: 無効化している間に作成した管理者は、パスキーを登録するまでログインできません。
+
 # ナビゲーション
 ecauth_login43.admin.nav.config: EcAuth
 ecauth_login43.admin.nav.config.setting: EcAuth 設定
@@ -75,6 +88,10 @@ ecauth_login43.admin.login.passkey.not_found: パスキーが見つからない�
 ecauth_login43.admin.login.passkey.hint: このアカウントで初めてパスキーを使う場合は、パスワードでログインしてから「設定 → EcAuth → パスキー管理」でパスキーを登録してください。
 ecauth_login43.admin.login.passkey.not_supported: お使いのブラウザはパスキー認証に対応していません。
 ecauth_login43.admin.login.passkey.https_required: パスキー認証にはHTTPS接続が必要です。
+# パスワード認証を無効化しているときにログイン画面へ出す案内。
+# 実際に認証を拒否するのは Security/AdminPasswordLoginListener で、こちらは案内のみ。
+ecauth_login43.admin.login.password_disabled.notice: パスワード認証は無効化されています。パスキーでログインしてください。
+ecauth_login43.admin.login.password_disabled.notice_unavailable: パスワード認証は無効化されていますが、この環境ではパスキーを利用できません。HTTPS でアクセスするか、パスキーに対応したブラウザをご利用ください。
 
 # コールバック
 ecauth_login43.admin.callback.error: 認証に失敗しました。

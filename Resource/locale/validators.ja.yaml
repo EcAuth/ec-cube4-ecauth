@@ -1,0 +1,6 @@
+# 認証失敗時の文言。
+#
+# EC-CUBE のログイン画面 (@admin/login.twig) は
+# {{ error.messageKey|trans(error.messageData, 'validators') }} で描画するため、
+# AuthenticationException のメッセージキーは messages ではなく validators ドメインに置く。
+ecauth_login43.admin.login.password_disabled: 管理画面のパスワード認証は無効化されています。パスキーでログインしてください。
