@@ -14,6 +14,10 @@
         #ecauth-signup-steps li {
             list-style-type: decimal;
         }
+
+        #ecauth-password-login-how-to li {
+            list-style-type: disc;
+        }
     </style>
 {% endblock %}
 
@@ -128,6 +132,46 @@
                                 </a>
                             {% else %}
                                 <p class="mb-0 text-muted">{{ 'ecauth_login43.admin.config.next_step.description.pending'|trans }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# 管理画面のパスワード認証の状態。
+                       ここは表示専用で、切り替えは環境変数でしか行えない。管理画面から
+                       変えられるようにすると、乗っ取られた時点でパスワード認証を戻されて
+                       しまい、この機構が守りにならないため（Service/AdminPasswordLoginPolicy）。 #}
+                    <div class="card rounded border-0 mb-4">
+                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.password_login.header'|trans }}</span></div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-3">
+                                    <span>{{ 'ecauth_login43.admin.config.password_login.status'|trans }}</span>
+                                </div>
+                                <div class="col">
+                                    {% if password_login_disabled %}
+                                        <span id="ecauth-password-login-status" class="badge bg-success" data-status="disabled">{{ 'ecauth_login43.admin.config.password_login.status.disabled'|trans }}</span>
+                                    {% else %}
+                                        <span id="ecauth-password-login-status" class="badge bg-secondary" data-status="enabled">{{ 'ecauth_login43.admin.config.password_login.status.enabled'|trans }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <p class="mb-3">{{ 'ecauth_login43.admin.config.password_login.description'|trans({'%env%': password_login_env_name}) }}</p>
+
+                            <ul id="ecauth-password-login-how-to" class="mb-3 ps-4">
+                                <li class="mb-1">{{ 'ecauth_login43.admin.config.password_login.how_to.disable'|trans({'%env%': password_login_env_name}) }}</li>
+                                <li>{{ 'ecauth_login43.admin.config.password_login.how_to.enable'|trans({'%env%': password_login_env_name}) }}</li>
+                            </ul>
+
+                            {% if password_login_disabled %}
+                                <div class="alert alert-warning mb-0">
+                                    <p class="mb-1">{{ 'ecauth_login43.admin.config.password_login.caution.lost_passkey'|trans({'%env%': password_login_env_name}) }}</p>
+                                    <p class="mb-0">{{ 'ecauth_login43.admin.config.password_login.caution.new_member'|trans }}</p>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning mb-0">
+                                    <p class="mb-0">{{ 'ecauth_login43.admin.config.password_login.caution.before_disable'|trans }}</p>
+                                </div>
                             {% endif %}
                         </div>
                     </div>

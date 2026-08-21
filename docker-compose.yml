@@ -31,6 +31,11 @@ services:
       # サフィックスを許可すると、そのサービスの全利用者を信頼することになり、
       # EcAuthDocs #101 の修正の意味が失われる。
       ECAUTH_ALLOWED_HOSTS: ${ECAUTH_ALLOWED_HOSTS:-.ec-auth.io}
+      # 管理画面のパスワード認証を無効化するか（1 / true / on / yes で無効）。
+      # 未設定なら従来どおり ID とパスワードでログインできる。
+      # 無効化すると、管理者はパスキーでしかログインできなくなる。パスキーを
+      # 紛失したときはこの値を外して起動し直せばパスワードでログインできる。
+      ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN: ${ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -5,6 +5,7 @@ namespace Plugin\EcAuthLogin43\Controller\Admin;
 use Eccube\Controller\AbstractController;
 use Plugin\EcAuthLogin43\Form\Type\Admin\ConfigType;
 use Plugin\EcAuthLogin43\Repository\ConfigRepository;
+use Plugin\EcAuthLogin43\Service\AdminPasswordLoginPolicy;
 use Plugin\EcAuthLogin43\Service\BaseUrlValidator;
 use Plugin\EcAuthLogin43\Service\ClientResolveService;
 use Plugin\EcAuthLogin43\Service\PasskeyAuthService;
@@ -45,6 +46,11 @@ class ConfigController extends AbstractController
     protected $passkeyAuthService;
 
     /**
+     * @var AdminPasswordLoginPolicy
+     */
+    protected $adminPasswordLoginPolicy;
+
+    /**
      * @var TranslatorInterface
      */
     protected $translator;
@@ -71,6 +77,7 @@ class ConfigController extends AbstractController
         BaseUrlValidator $baseUrlValidator,
         TenantChangePolicy $tenantChangePolicy,
         PasskeyAuthService $passkeyAuthService,
+        AdminPasswordLoginPolicy $adminPasswordLoginPolicy,
         TranslatorInterface $translator,
         string $signupUrl,
         string $mypageUrl
@@ -80,6 +87,7 @@ class ConfigController extends AbstractController
         $this->baseUrlValidator = $baseUrlValidator;
         $this->tenantChangePolicy = $tenantChangePolicy;
         $this->passkeyAuthService = $passkeyAuthService;
+        $this->adminPasswordLoginPolicy = $adminPasswordLoginPolicy;
         $this->translator = $translator;
         $this->signupUrl = $signupUrl;
         $this->mypageUrl = $mypageUrl;
@@ -267,6 +275,11 @@ class ConfigController extends AbstractController
             'signup_url' => $this->signupUrl,
             'mypage_url' => $this->mypageUrl,
             'saved_client_id' => $savedClientId,
+            // パスワード認証の無効化は環境変数でしか切り替えられない（管理画面から
+            // 変えられると乗っ取り後に戻されてしまうため）。設定画面では現在の状態と
+            // 切り替え方だけを表示する。
+            'password_login_disabled' => $this->adminPasswordLoginPolicy->isDisabled(),
+            'password_login_env_name' => AdminPasswordLoginPolicy::ENV_NAME,
         ];
     }
 }

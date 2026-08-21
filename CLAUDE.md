@@ -127,7 +127,10 @@ ec-cube4-ecauth/
 │   └── ConfigType.php
 ├── Repository/
 │   └── ConfigRepository.php
+├── Security/
+│   └── AdminPasswordLoginListener.php # 管理画面のパスワード認証を拒否する
 ├── Service/
+│   ├── AdminPasswordLoginPolicy.php # パスワード認証を無効化するかの判定
 │   ├── EcAuthApiClient.php          # EcAuth API HTTP クライアント
 │   └── PasskeyAuthService.php       # パスキー認証ビジネスロジック
 ├── Resource/
@@ -258,6 +261,114 @@ EcAuth 側であり、テナントが変われば別の値が降ってきて衝�
 `getElementById('my-id')` は `null` を返す（JS が静かに何もしなくなる）。
 テンプレート側から要素を掴むときは `{{ form.foo.vars.id }}` で本来の id を引くこと。
 
+## 管理画面のパスワード認証の無効化
+
+環境変数 `ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN` を有効にすると、管理画面の ID / パスワードに
+よるログインを受け付けなくなる（パスキー一本化）。管理者アカウントを不正に作成される
+脆弱性を踏んでも、EcAuth 側にパスキーが無いアカウントではログインできない、という狙い。
+利用者向けの説明は README.md を参照。
+
+### 切り替えを DB ではなく環境変数に置いている理由
+
+プラグイン設定（`plg_ecauth_login43_config`）に持たせると、**管理画面を乗っ取られた時点で
+パスワード認証を戻されてしまい、対策として成立しない**。環境変数はアプリケーションの外側に
+あり管理画面から触れないため、乗っ取り後の復帰手段にならない。
+
+同じ理由で「プラグイン未設定ならパスワード認証を許す」といったフォールバックも持たない。
+DB を書ける攻撃者が設定を消すだけでパスワード認証を復活できてしまうため。通常の復旧手段は
+**「環境変数を無効に戻す」**で、README に明記してある。
+
+設定画面（`config.twig`）はこの状態を**表示するだけ**。フォーム項目を足さないこと。
+
+### 保証の範囲 — プラグインを無効化されると迂回される
+
+**「DB を書き換えてもパスワード認証は戻らない」と書いてはいけない。**プラグインを無効化
+できる者は迂回できる（[#61 レビュー指摘](https://github.com/EcAuth/ec-cube4-ecauth/pull/61#discussion_r3828919202)）。
+
+`Eccube\Kernel::configureContainer()` はプラグインの `services.yaml` を有効・無効に関係なく
+glob で読むが、`Eccube\DependencyInjection\Compiler\PluginPass` が**無効プラグインの
+`Plugin\<Code>\` 名前空間のサービスから全タグを剥がす**（`doctrine.repository_service` のみ例外）。
+`kernel.event_subscriber` も剥がれるため、リスナーが登録されなくなる。
+
+環境変数を `1` のまま固定して実測した結果:
+
+| 操作 | POST /admin/login | /admin/ |
+|---|---|---|
+| プラグイン有効 | 302 → `/admin/login`（拒否） | 302 → login |
+| `dtb_plugin.enabled = false` のみ | 302 → `/admin/login`（拒否） | 302 → login |
+| 上記 + `cache:clear` | 302 → `/admin/`（ログイン成立） | 200 |
+
+**DB 書き換え単独では迂回できない**（有効・無効はコンテナのコンパイル時に解決されるため）。
+迂回には DB 書き込みに加えてキャッシュ再構築＝ファイルシステム / CLI アクセスが要る。
+本来の脅威（不正な管理者アカウント作成）への防御は成立しているが、断定表現は使わないこと。
+
+プラグインは Web インストーラーからインストールできることが要件でコア改変も禁止のため、
+**この経路はプラグイン内では塞げない。ドキュメント化が正しい対処**であり、「プラグイン外で
+強制する」方向へ実装を広げないこと。
+
+### 塞いでいる場所は `CheckPassportEvent`（`Security/AdminPasswordLoginListener`）
+
+ログイン画面のテンプレート（`login_passkey.twig`）が入力欄を隠すのは案内でしかない。
+実際に拒否しているのは Symfony の認証パイプラインで、`curl` 等でフォームを経由せずに
+POST されても同じように弾く。ルートやパスで判定していないのは、`%eccube_admin_route%` が
+サイトごとに変更できるため（パス判定はカスタマイズ済みサイトで素通りする）。
+
+#### 優先度 300 の理由（Symfony 5.4 / 6.4 / 7.x で並びは同じ）
+
+```
+2080 LoginThrottlingListener   総当たり制限は従来どおり先に効かせる
+1024 UserProviderListener      UserBadge に user loader を差すだけ
+ 512 CsrfProtectionListener    CSRF 検証も先に通す
+→300 AdminPasswordLoginListener
+ 256 UserCheckerListener       ここで初めて $passport->getUser() が実行される
+   0 CheckCredentialsListener  パスワードのハッシュ検証
+```
+
+**`UserCheckerListener` より前**に置くのが要点。ユーザー解決の後に拒否すると、存在しない
+`login_id` は `UserNotFoundException`（表示は「Bad credentials」）、存在する `login_id` は
+「パスワード認証は無効です」となり、**応答の差から login_id の存在を判別できてしまう**
+（ユーザー列挙）。解決前に一律で拒否すればどの `login_id` でも同じ応答になり、パスワードの
+ハッシュ計算も走らない。
+
+#### ファイアウォール名で絞るのは必須
+
+Symfony は**グローバルに登録された `CheckPassportEvent` リスナーを全ファイアウォールの
+ディスパッチャへ複製する**（SecurityBundle の `RegisterGlobalSecurityEventListenersPass`）。
+つまり EC サイトのフロント会員ログイン（`customer` ファイアウォール）でも本リスナーが動く。
+`admin` で絞り損ねると**会員が誰もログインできなくなる**。リグレッションテストは
+`Tests/specs/disable_admin_password.spec.ts` の「EC サイトのフロント会員ログインは影響を
+受けない」。
+
+判定表そのものは EC-CUBE 非依存の `Service/AdminPasswordLoginPolicy` に切り出してあり、
+`Tests/Unit/AdminPasswordLoginPolicyTest.php` が固定している。
+
+### 認証失敗の文言は `validators` ドメインに置く
+
+`@admin/login.twig` は `{{ error.messageKey|trans(error.messageData, 'validators') }}` で
+描画する。`messages.ja.yaml` に書いてもキーがそのまま画面に出るだけなので、
+`Resource/locale/validators.ja.yaml` 側に置くこと。
+
+### E2E は専用ジョブで動かす
+
+他の E2E はパスワードで管理画面にログインするため、無効化状態と同じコンテナには同居
+できない。env だけ差し替えてコンテナを作り直す手も使えない（DB は volume で残るのに
+プラグインの導入状態はコンテナ側にしか無く、`docker-entrypoint.sh` の
+`eccube:plugin:enable` が「既に有効」で落ちて Apache が起動しない）。CI では
+`.github/workflows/playwright.yml` の `e2e-password-login-disabled` ジョブが
+クリーンな環境を立てて `disable_admin_password.spec.ts` だけを流す。
+
+ローカルで再現する場合:
+
+```bash
+docker compose down -v
+ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN=1 docker compose up -d --build
+E2E_ADMIN_PASSWORD_LOGIN_DISABLED=1 pnpm exec playwright test Tests/specs/disable_admin_password.spec.ts
+```
+
+なお EC-CUBE の `login_throttling` は既定で 5 回 / 30 分（`login_id` + IP 単位）。
+spec の中で管理者ログインを失敗させる回数を増やすと、リトライ込みで上限に当たり
+「パスワード認証は無効」ではなく試行制限のエラーになるので注意。
+
 ## セキュリティ注意事項
 
 - client_secret はサーバーサイドのみ。JS に渡さない
@@ -265,6 +376,8 @@ EcAuth 側であり、テナントが変われば別の値が降ってきて衝�
 - state パラメータは hash_equals() で検証、使い捨て削除
 - WebAuthn は HTTPS 必須。HTTP 時はボタン非表示
 - デプロイ先 URL を issue/PR/README に含めないこと
+- パスワード認証の無効化は環境変数のみで切り替える。設定画面（DB）に移さないこと
+  （上記「管理画面のパスワード認証の無効化」参照）
 - **コールバックで `TokenStorage::setToken()` を使わない**（#45）。`/ecauth/callback` は
   admin firewall の pattern (`^/%eccube_admin_route%/`) にマッチせず customer firewall (`^/`)
   配下で処理されるため、TokenStorage に Member を載せると customer firewall の

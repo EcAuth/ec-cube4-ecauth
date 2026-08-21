@@ -1,21 +1,6 @@
 <script src="https://cdn.ec-auth.io/auth-js/{{ ecauth_auth_js_version }}/ecauth-auth.umd.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // HTTPS かつ WebAuthn 対応時のみ表示
-    if (location.protocol !== 'https:' || typeof window.PublicKeyCredential === 'undefined') {
-        return;
-    }
-
-    var loginForm = document.querySelector('form[action*="login"]');
-    if (!loginForm) {
-        return;
-    }
-
-    var submitButton = loginForm.querySelector('button[type="submit"]');
-    if (!submitButton) {
-        return;
-    }
-
     // 文言は JS 文字列に埋めるため e('js') でエスケープする。
     // Twig の自動エスケープは HTML 向けで、引用符が実体参照になるだけなので
     // JS リテラル内では正しく閉じられない値を作りうる。
@@ -26,12 +11,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // 案内文の要素を差し込むと本体の変更に追従しづらい。ボタンの title
     // （ツールチップ）なら本体の DOM 構造に手を入れずに常時見せられる。
     var HINT_MESSAGE = '{{ "ecauth_login43.admin.login.passkey.hint"|trans|e('js') }}';
+    var PASSWORD_DISABLED_MESSAGE = '{{ "ecauth_login43.admin.login.password_disabled.notice"|trans|e('js') }}';
+    var PASSWORD_DISABLED_UNAVAILABLE_MESSAGE = '{{ "ecauth_login43.admin.login.password_disabled.notice_unavailable"|trans|e('js') }}';
+
+    // 環境変数 ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN の状態（EcAuthLoginEvent が渡す）。
+    // ここで行うのは入力欄を隠す案内だけで、実際に認証を拒否するのはサーバー側の
+    // Security/AdminPasswordLoginListener。フォームを経由しない POST も塞ぐ必要があるため、
+    // この JS を無効化しても守りは変わらない。
+    var PASSWORD_LOGIN_DISABLED = {{ ecauth_password_login_disabled|default(false) ? 'true' : 'false' }};
+
+    var loginForm = document.querySelector('form[action*="login"]');
+    if (!loginForm) {
+        return;
+    }
+
+    var submitButton = loginForm.querySelector('button[type="submit"]');
+
+    // WebAuthn は HTTPS 必須。非対応ブラウザ・HTTP ではパスキーを提示できない。
+    var passkeyAvailable = location.protocol === 'https:' && typeof window.PublicKeyCredential !== 'undefined';
+
+    if (PASSWORD_LOGIN_DISABLED) {
+        hidePasswordLogin(loginForm, submitButton);
+        // パスキーも使えない環境では「押せるものが何も無い」画面になる。
+        // 理由が分からないまま詰まらないよう、案内文を出し分ける。
+        insertNotice(
+            loginForm,
+            submitButton,
+            passkeyAvailable ? PASSWORD_DISABLED_MESSAGE : PASSWORD_DISABLED_UNAVAILABLE_MESSAGE
+        );
+    }
+
+    if (!passkeyAvailable || !submitButton) {
+        return;
+    }
 
     // パスキーログインボタンを作成
     var passkeyBtn = document.createElement('button');
     passkeyBtn.type = 'button';
     passkeyBtn.id = 'ecauth-passkey-login';
-    passkeyBtn.className = 'btn btn-ec-regular btn-block mt-3';
+    // パスワード認証が無効なときはこれが唯一のログイン手段になるので、
+    // 本体の送信ボタンと同じ主ボタンの見た目にする。
+    passkeyBtn.className = PASSWORD_LOGIN_DISABLED
+        ? 'btn btn-primary btn-lg w-100'
+        : 'btn btn-ec-regular btn-block mt-3';
     passkeyBtn.textContent = BUTTON_LABEL;
     passkeyBtn.title = HINT_MESSAGE;
 
@@ -75,5 +97,50 @@ document.addEventListener('DOMContentLoaded', function() {
             alert(ERROR_MESSAGE);
         });
     });
+
+    /**
+     * ID / パスワードの入力欄と送信ボタンを隠す。
+     *
+     * 入力欄そのものは DOM に残す（disabled にもしない）。隠したフォームが
+     * それでも送信された場合に、サーバー側のリスナーが「パスワード認証は無効」と
+     * 返せるようにしておくため。値を空にしてしまうと Symfony の
+     * FormLoginAuthenticator が Passport を作る前に「Bad credentials」で落ち、
+     * 理由が伝わらない。
+     */
+    function hidePasswordLogin(form, submit) {
+        ['login_id', 'password'].forEach(function(name) {
+            var input = form.querySelector('[name="' + name + '"]');
+            if (!input) {
+                return;
+            }
+            // 入力欄だけ消すと Bootstrap の余白が残るため、囲みの .mb-3 ごと隠す。
+            // 本体のマークアップが変わって当たらない場合は親要素で代替する。
+            var wrapper = (input.closest ? input.closest('.mb-3') : null) || input.parentNode || input;
+            wrapper.classList.add('d-none');
+        });
+
+        if (submit) {
+            submit.classList.add('d-none');
+        }
+    }
+
+    /**
+     * パスワード認証が無効である旨の案内を、ログインボタンの直前に差し込む。
+     */
+    function insertNotice(form, submit, message) {
+        var notice = document.createElement('div');
+        notice.id = 'ecauth-password-login-disabled';
+        notice.className = 'alert alert-warning mb-3';
+        notice.textContent = message;
+
+        // 送信ボタンの囲み（= パスキーボタンが入る位置）の直前に置く。
+        var anchor = submit ? submit.parentNode : null;
+        if (anchor && anchor.parentNode) {
+            anchor.parentNode.insertBefore(notice, anchor);
+
+            return;
+        }
+        form.appendChild(notice);
+    }
 });
 </script>
