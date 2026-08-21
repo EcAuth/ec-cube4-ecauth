@@ -35,7 +35,7 @@ composer を経由することがあるため失敗しやすく、EC-CUBE 公式
 
 ```bash
 # 配布アーカイブ (tar.gz) からインストールする
-bin/console eccube:plugin:install --path=/path/to/ec-cube4-ecauth-4.0-1.1.0.tar.gz
+bin/console eccube:plugin:install --path=/path/to/ec-cube4-ecauth-4.0-1.1.1.tar.gz
 bin/console eccube:plugin:enable --code=EcAuthLogin40
 ```
 
