@@ -7,6 +7,12 @@ const PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 const ADVANCED_TOGGLE = 'button[data-bs-toggle="collapse"][data-bs-target="#ecauth-advanced-settings"]';
 const ADVANCED_PANEL = '#ecauth-advanced-settings';
 
+// 「警告フラッシュが出ていないこと」を見るためのセレクタ。
+// 設定画面にはパスワード認証カードの常設注意書き（.alert-warning）もあるため、
+// 素の .alert-warning では常に 1 件ヒットしてしまう。フラッシュだけを対象にする。
+// EC-CUBE 本体の @admin/alert.twig は必ず alert-dismissible を付けて描画する。
+const FLASH_WARNING = '.alert-warning.alert-dismissible';
+
 // 導線の URL は services.yaml の parameters が既定値で、環境変数で上書きできる。
 // テスト側も同じ解決順にしておく（CI では環境変数未設定なので既定値が使われる）。
 const SIGNUP_URL = process.env.ECAUTH_SIGNUP_URL || 'https://ec-auth.io/signup/';
@@ -272,7 +278,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
 
     await expect(page.locator('.alert-success')).toBeVisible();
     await expect(
-      page.locator('.alert-warning', { hasText: 'EcAuth URL を解決できなかったため' }),
+      page.locator(FLASH_WARNING, { hasText: 'EcAuth URL を解決できなかったため' }),
     ).toBeVisible();
     // 行き止まりにしない。以前は client_resolve.failed で弾いており、しかもその文言は
     // 「高度な設定で URL を直接指定してください」と、既に指定済みの操作を案内していた。
@@ -323,10 +329,10 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     // 対象 0 件なら「接続先のテナントが変わりました。」、1 件以上なら
     // 「接続先のテナントが変わったため、…紐付けを解除しました。」。
     // 先行 spec がパスキーを登録しているかで件数が変わるため共通部分で見る。
-    await expect(page.locator('.alert-warning', { hasText: '接続先のテナントが変わ' })).toBeVisible();
+    await expect(page.locator(FLASH_WARNING, { hasText: '接続先のテナントが変わ' })).toBeVisible();
     // URL は明示指定したので、引き継ぎの警告は出ない
     await expect(
-      page.locator('.alert-warning', { hasText: 'EcAuth URL を解決できなかったため' }),
+      page.locator(FLASH_WARNING, { hasText: 'EcAuth URL を解決できなかったため' }),
     ).toHaveCount(0);
 
     await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
@@ -347,7 +353,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     await page.click('button[type="submit"]');
 
     await expect(page.locator('.alert-success')).toBeVisible();
-    await expect(page.locator('.alert-warning')).toHaveCount(0);
+    await expect(page.locator(FLASH_WARNING)).toHaveCount(0);
     expect(dialogs).toHaveLength(0);
   });
 });
