@@ -1,16 +1,16 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Eccube\Entity\Member;
 use Eccube\Repository\MemberRepository;
-use Plugin\EcAuthLogin43\Repository\ConfigRepository;
+use Plugin\EcAuthLogin40\Repository\ConfigRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 class PasskeyAuthService
 {
@@ -35,9 +35,9 @@ class PasskeyAuthService
     private $apiClient;
 
     /**
-     * @var UserPasswordHasherInterface
+     * @var UserPasswordEncoderInterface
      */
-    private $passwordHasher;
+    private $passwordEncoder;
 
     /**
      * @var IdTokenVerifier
@@ -59,7 +59,7 @@ class PasskeyAuthService
         MemberRepository $memberRepository,
         ConfigRepository $configRepository,
         EcAuthApiClient $apiClient,
-        UserPasswordHasherInterface $passwordHasher,
+        UserPasswordEncoderInterface $passwordEncoder,
         IdTokenVerifier $idTokenVerifier,
         BaseUrlValidator $baseUrlValidator,
         LoggerInterface $logger
@@ -68,7 +68,7 @@ class PasskeyAuthService
         $this->memberRepository = $memberRepository;
         $this->configRepository = $configRepository;
         $this->apiClient = $apiClient;
-        $this->passwordHasher = $passwordHasher;
+        $this->passwordEncoder = $passwordEncoder;
         $this->idTokenVerifier = $idTokenVerifier;
         $this->baseUrlValidator = $baseUrlValidator;
         $this->logger = $logger;
@@ -269,8 +269,13 @@ class PasskeyAuthService
         // _security_admin へ直接書けば、リダイレクト先の管理画面リクエストで
         // admin firewall の ContextListener が正しくトークンを復元するため、
         // 管理画面へのログインは成立する。
+        //
+        // UsernamePasswordToken の引数は Symfony のバージョンで並びが違う。
+        // 4.0/4.1 が使う 3.4 / 4.4 は ($user, $credentials, $providerKey, $roles) の
+        // 4 引数で、$credentials が省略できない (5.4 以降の 3 引数版とは別物)。
+        // 資格情報はセッションに serialize されるため、パスワードは載せず null を渡す。
         $session->migrate(true);
-        $token = new UsernamePasswordToken($Member, 'admin', $Member->getRoles());
+        $token = new UsernamePasswordToken($Member, null, 'admin', $Member->getRoles());
         $session->set('_security_admin', serialize($token));
 
         $this->logger->info('EcAuth passkey authentication successful', [
@@ -288,7 +293,7 @@ class PasskeyAuthService
      */
     public function verifyPassword(Member $Member, string $password): bool
     {
-        return $this->passwordHasher->isPasswordValid($Member, $password);
+        return $this->passwordEncoder->isPasswordValid($Member, $password);
     }
 
     /**

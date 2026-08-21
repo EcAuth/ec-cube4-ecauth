@@ -1,94 +1,124 @@
 parameters:
     ecauth_auth_js_version: 'latest'
+
+    # 環境変数の既定値は `env(名前)` 形式のパラメータで与える。
+    #
+    # 4.2/4.3 版は `%env(default:パラメータ名:NAME)%` を使っていたが、`default:`
+    # プロセッサは Symfony 4.0 で追加されたもので、EC-CUBE 4.0 が使う Symfony 3.4
+    # には無い (3.4 の EnvVarProcessor が持つのは base64 / bool / const / file /
+    # float / int / json / resolve / string のみ)。そのまま持ち込むと
+    # "Unsupported env var prefix" でコンテナのコンパイルに失敗する。
+    #
+    # `env(NAME)` パラメータによる既定値は Symfony 3.3 以降で使え、4.4 でも同じ
+    # 意味になるため、4.0 / 4.1 のどちらでも動く。
+    #
     # Client Resolve API の Discovery URL デフォルト値。
-    # 環境変数 ECAUTH_CLIENT_RESOLVE_URL が設定されていればそちらが優先される。
-    ecauth_default_discovery_url: 'https://api.ec-auth.io'
+    env(ECAUTH_CLIENT_RESOLVE_URL): 'https://api.ec-auth.io'
     # 設定画面に表示する申込 / マイページ導線の URL デフォルト値。
     # Hugo 生成の実 URL に合わせて末尾スラッシュ付き (無いと 301 が挟まる)。
-    # 環境変数 ECAUTH_SIGNUP_URL / ECAUTH_MYPAGE_URL が設定されていればそちらが優先される。
-    ecauth_default_signup_url: 'https://ec-auth.io/signup/'
-    ecauth_default_mypage_url: 'https://ec-auth.io/mypage/'
+    env(ECAUTH_SIGNUP_URL): 'https://ec-auth.io/signup/'
+    env(ECAUTH_MYPAGE_URL): 'https://ec-auth.io/mypage/'
     # EcAuth Base URL として許可するホストのリスト（カンマ区切り）。
     # Base URL はトークン交換先かつ JWKS の取得先になるため、設定汚染や
     # client-resolve 応答の改竄で攻撃者のホストに向かないよう許可リストで縛る
     # （EcAuthDocs #101）。
-    # 環境変数 ECAUTH_ALLOWED_HOSTS が設定されていればそちらが優先される。
     # ec-auth.io 配下に無い開発・ステージング環境を使う場合は、環境変数側に
     # 「完全なホスト名」を追加すること。共有ホスティングのサフィックス
     # （.azurewebsites.net 等）を許可すると、そのサービスの全利用者を信頼する
     # ことになり本検証の意味が失われる。書式は BaseUrlValidator の docblock を参照。
-    ecauth_default_allowed_hosts: '.ec-auth.io'
+    env(ECAUTH_ALLOWED_HOSTS): '.ec-auth.io'
     # 管理画面のパスワード認証を無効化するかどうかの既定値。
-    # 環境変数 ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN が設定されていればそちらが優先される
-    # (1 / true / on / yes で無効化、未設定・0・空文字なら従来どおりパスワードでログインできる)。
+    # 1 / true / on / yes で無効化、未設定・0・空文字なら従来どおりパスワードでログインできる。
     #
     # 意図的にプラグイン設定 (DB) ではなく環境変数に置いている。管理画面から切り替えられると、
     # 乗っ取られた時点でパスワード認証を戻されてしまい守りにならないため。
     # 環境変数名は Service/AdminPasswordLoginPolicy::ENV_NAME にも定数として持っている
     # (設定画面と README に表示するため)。変更するときは両方を直すこと。
-    ecauth_default_disable_admin_password_login: false
+    env(ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN): '0'
 
 services:
-    Plugin\EcAuthLogin43\:
-        resource: '../../*'
-        exclude: '../../{Entity,Resource,Tests,tests}'
-        autowire: true
-        autoconfigure: true
+    _defaults:
+        # bind は定義ブロックごとに閉じている。resource 定義 (Plugin\EcAuthLogin40\) の
+        # 中に書くと、後から個別に上書きした定義 (CachedJwksProvider など) には
+        # 引き継がれず、
+        #   Cannot autowire service "...": argument "$signupUrl" of method
+        #   "__construct()" is type-hinted "string", you should configure its value explicitly.
+        # で enable 時に落ちる。_defaults に置けばこのファイル内のどの定義にも効く。
         bind:
             $ecauth_auth_js_version: '%ecauth_auth_js_version%'
-            $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
-            $signupUrl: '%env(default:ecauth_default_signup_url:ECAUTH_SIGNUP_URL)%'
-            $mypageUrl: '%env(default:ecauth_default_mypage_url:ECAUTH_MYPAGE_URL)%'
-            $allowedHosts: '%env(default:ecauth_default_allowed_hosts:ECAUTH_ALLOWED_HOSTS)%'
+            $discoveryUrl: '%env(ECAUTH_CLIENT_RESOLVE_URL)%'
+            $signupUrl: '%env(ECAUTH_SIGNUP_URL)%'
+            $mypageUrl: '%env(ECAUTH_MYPAGE_URL)%'
+            $allowedHosts: '%env(ECAUTH_ALLOWED_HOSTS)%'
             $eccubeTimezone: '%timezone%'
+            # 翻訳。
+            # Symfony 3.4 には symfony/translation-contracts が無く
+            # (Symfony\Contracts\Translation\TranslatorInterface が存在しない)、
+            # 4.4 では逆に Symfony\Component\Translation\TranslatorInterface が
+            # オートワイヤの別名から外れている。どちらの系統でも解決できるよう、
+            # 型ではなくサービス ID で渡す。
+            $translator: '@translator'
+
+    Plugin\EcAuthLogin40\:
+        resource: '../../*'
+        exclude: '../../{Entity,Resource,Tests,tests,docker}'
+        autowire: true
+        autoconfigure: true
 
     # 管理画面のパスワード認証を無効化するかどうか。
     # bind: に $disabled を置くと同名の引数を持つ他サービスまで巻き込むため、
     # このサービスの arguments で直接指定する。
-    Plugin\EcAuthLogin43\Service\AdminPasswordLoginPolicy:
+    Plugin\EcAuthLogin40\Service\AdminPasswordLoginPolicy:
         autowire: true
         autoconfigure: true
         arguments:
-            $disabled: '%env(default:ecauth_default_disable_admin_password_login:bool:ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN)%'
+            $disabled: '%env(bool:ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN)%'
 
     # パスワード認証を実際に塞ぐリスナー。
     # FirewallMap (security.firewall.map) は型でオートワイヤできないためサービス ID で渡す。
-    Plugin\EcAuthLogin43\Security\AdminPasswordLoginListener:
+    Plugin\EcAuthLogin40\Security\AdminPasswordLoginListener:
         autowire: true
         autoconfigure: true
         arguments:
             $firewallMap: '@security.firewall.map'
 
     # JWKS プロバイダ。キャッシュは EC-CUBE 本体の cache.app (PSR-6) を使う。
-    Plugin\EcAuthLogin43\Service\JwksProviderInterface:
-        alias: Plugin\EcAuthLogin43\Service\CachedJwksProvider
+    Plugin\EcAuthLogin40\Service\JwksProviderInterface:
+        alias: Plugin\EcAuthLogin40\Service\CachedJwksProvider
 
     # resource 読み込みで登録された定義を上書きするため、autowire / autoconfigure を明示する。
-    Plugin\EcAuthLogin43\Service\CachedJwksProvider:
+    Plugin\EcAuthLogin40\Service\CachedJwksProvider:
         autowire: true
         autoconfigure: true
         arguments:
             $cache: '@cache.app'
 
-    # PSR-18 HTTP クライアント
-    # EC-CUBE 4.2+ は本体が guzzlehttp/guzzle:^7 を依存として持つため Guzzle にエイリアス。
-    # 実装を差し替える場合は本エントリの class のみ変更する。
-    Psr\Http\Client\ClientInterface:
-        class: GuzzleHttp\Client
+    # HTTP クライアント。
+    #
+    # EC-CUBE 4.0/4.1 の依存には psr/http-client (PSR-18) も psr/http-factory (PSR-17)
+    # も無く、同梱の Guzzle 6 は PSR-18 を実装していない。プラグイン側で足そうにも、
+    # 4.0 系は Composer v1 のメタデータが廃止済みで、ec-cube/plugin-installer 以外の
+    # 依存を持つと利用者にインストール時の手当てを強いる (doc4.ec-cube.net/plugin_eccube40)。
+    # そのため PSR-18/PSR-17 相当の抽象をプラグイン内に置き、Guzzle は Http\GuzzleClient
+    # 1 クラスだけが知る形にしている。実装を差し替えるときはここと GuzzleClient を直す。
+    GuzzleHttp\Client:
         arguments:
             - { timeout: 30, http_errors: false }
 
-    # PSR-17 Request / Stream ファクトリ (GuzzleHttp\Psr7\HttpFactory が両方を実装)
-    Psr\Http\Message\RequestFactoryInterface:
-        class: GuzzleHttp\Psr7\HttpFactory
-    Psr\Http\Message\StreamFactoryInterface:
-        class: GuzzleHttp\Psr7\HttpFactory
+    Plugin\EcAuthLogin40\Http\GuzzleClient:
+        arguments:
+            $client: '@GuzzleHttp\Client'
 
-eccube:
-    rate_limiter:
-        ecauth_passkey_authenticate:
-            route: ecauth_passkey_authenticate_options
-            method: ['POST']
-            type: ['ip']
-            limit: 10
-            interval: '60 minutes'
+    Plugin\EcAuthLogin40\Http\HttpClientInterface:
+        alias: Plugin\EcAuthLogin40\Http\GuzzleClient
+
+    Plugin\EcAuthLogin40\Http\RequestFactoryInterface:
+        alias: Plugin\EcAuthLogin40\Http\GuzzleClient
+
+    Plugin\EcAuthLogin40\Http\StreamFactoryInterface:
+        alias: Plugin\EcAuthLogin40\Http\GuzzleClient
+
+# 4.2/4.3 版にあった eccube.rate_limiter (パスキー認証オプション取得の IP 単位レート制限) は
+# ここには無い。あの設定は EC-CUBE 4.2 で入った本体機能で、4.0/4.1 には対応するコードが
+# 存在せず、書くとコンテナのコンパイルで未知の設定として弾かれる。
+# 4.0/4.1 版はプラグイン側でのレート制限を持たない、というのが現状の仕様。

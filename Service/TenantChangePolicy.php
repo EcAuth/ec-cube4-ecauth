@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
 /**
  * 設定画面で接続先テナント（client_id）が差し替えられたかを判定し、

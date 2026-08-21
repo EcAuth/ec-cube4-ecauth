@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
 /**
  * EcAuth の JWKS (JSON Web Key Set) を取得する抽象。

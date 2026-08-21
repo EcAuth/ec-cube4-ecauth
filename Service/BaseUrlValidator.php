@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
 /**
  * EcAuth Base URL が許可されたホストを指しているかを検証する。

@@ -1,6 +1,9 @@
-# EcAuthLogin43 - EC-CUBE 4.2/4.3系 EcAuth 認証プラグイン
+# EcAuthLogin40 - EC-CUBE 4.0/4.1系 EcAuth 認証プラグイン
 
-EC-CUBE 4.2/4.3系管理画面向けの EcAuth B2Bパスキー認証プラグインです。
+EC-CUBE 4.0/4.1系管理画面向けの EcAuth B2Bパスキー認証プラグインです。
+
+4.2/4.3 系をお使いの場合は、同じリポジトリの `main` ブランチで開発している
+EcAuthLogin43 (`ec-cube/ecauthlogin43`) を利用してください。
 
 ## 機能
 
@@ -11,8 +14,8 @@ EC-CUBE 4.2/4.3系管理画面向けの EcAuth B2Bパスキー認証プラグイ
 
 ## 要件
 
-- EC-CUBE 4.2/4.3系
-- PHP 7.4以上
+- EC-CUBE 4.0系 / 4.1系
+- PHP 7.1 以上
 - HTTPS環境（WebAuthn必須）
 
 ## インストール
@@ -23,12 +26,22 @@ EC-CUBE 4.2/4.3系管理画面向けの EcAuth B2Bパスキー認証プラグイ
 2. 管理画面 > オーナーズストア > プラグイン > プラグイン一覧 からインストール
 3. プラグインを有効化
 
-### Composerから
+### コマンドラインから（推奨）
+
+EC-CUBE 4.0 系は Composer v1 を使いますが、packagist.org は 2025-08-01 に
+Composer v1 向けメタデータの提供を終了しました。管理画面からのプラグイン操作は
+composer を経由することがあるため失敗しやすく、EC-CUBE 公式もコマンドラインでの
+操作を推奨しています（[EC-CUBE4.0系(Composer v1)利用時の注意点](https://doc4.ec-cube.net/plugin_eccube40)）。
 
 ```bash
-bin/console eccube:composer:require ecauth/ec-cube4-ecauth
-bin/console eccube:plugin:enable --code=EcAuthLogin43
+# 配布アーカイブ (tar.gz) からインストールする
+bin/console eccube:plugin:install --path=/path/to/ec-cube4-ecauth-4.0-1.1.0.tar.gz
+bin/console eccube:plugin:enable --code=EcAuthLogin40
 ```
+
+本プラグインは `ec-cube/plugin-installer` 以外の依存を持ちません。そのため、上記
+ドキュメントにある「依存パッケージを本体の composer.json に vcs リポジトリとして
+書き足す」対応は不要です。
 
 ## 設定
 
@@ -81,7 +94,7 @@ Web サーバーやコンテナの環境変数として設定しても構いま�
 ### この機構で防げること / 防げないこと
 
 管理者アカウントを不正に作成されても、**そのアカウントでのログインは防げます**。
-プラグイン設定（`plg_ecauth_login43_config`）を消しても、`dtb_member` を書き換えても、
+プラグイン設定（`plg_ecauth_login40_config`）を消しても、`dtb_member` を書き換えても、
 パスワード認証は戻りません。切り替えを DB ではなく環境変数に置いているのはこのためです。
 
 一方、**プラグインを無効化できる者は迂回できます**。具体的には次の両方が必要です。
@@ -105,15 +118,40 @@ Web サーバーやコンテナの環境変数として設定しても構いま�
 - 2 個目以降のパスキーを登録する際の本人確認は、従来どおりパスワードの再入力です
   （ログインではなくログイン済みセッションの再確認のため、無効化の対象外）。
 
+## 4.2/4.3 版（EcAuthLogin43）との違い
+
+提供する機能は同じですが、EC-CUBE と Symfony のバージョン差から次の点が異なります。
+
+| 項目 | 4.0/4.1 版 (EcAuthLogin40) | 4.2/4.3 版 (EcAuthLogin43) |
+|---|---|---|
+| パスキー認証オプション取得のレート制限 | **なし** | あり（IP 単位 10 回 / 60 分） |
+| パスワード認証を拒否する位置 | `kernel.request`（ファイアウォールの前） | `CheckPassportEvent`（CSRF 検証の後） |
+| HTTP クライアント | プラグイン内の抽象 + Guzzle 6 | PSR-18 + Guzzle 7 |
+| 依存パッケージ | `ec-cube/plugin-installer` のみ | PSR インタフェース群も require |
+
+レート制限は EC-CUBE 4.2 で追加された本体機能（`eccube.rate_limiter`）を使っており、
+4.0/4.1 には対応する仕組みがありません。
+
 ## 開発環境
 
+4.0/4.1 系には公式の Docker イメージが存在しない（`ghcr.io/ec-cube/ec-cube-php` は
+4.2 系が最古）ため、`Dockerfile` が EC-CUBE 本体ごとビルドします。
+
 ```bash
-# Docker環境起動
+# EC-CUBE 4.0.6-p5 で起動（既定）
 docker compose up -d --build
 
-# 管理画面: https://localhost:4430/admin
+# EC-CUBE 4.1.2-p5 で起動
+ECCUBE_VERSION=4.1.2-p5 docker compose up -d --build
+
+# 管理画面: https://localhost:8081/admin
 # デフォルトID: admin / password
 ```
+
+プラグインのソースを直したあとは `docker compose restart ec-cube` で反映されます
+（entrypoint が `/plugin` から `app/Plugin/EcAuthLogin40` へ同期します）。
+ファイルの削除、`composer.json`、Entity の変更を反映するときは
+`docker compose down -v` で作り直してください。
 
 ## ライセンス
 

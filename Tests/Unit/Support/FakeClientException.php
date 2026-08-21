@@ -1,12 +1,12 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit\Support;
+namespace Plugin\EcAuthLogin40\Tests\Unit\Support;
 
-use Psr\Http\Client\ClientExceptionInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientExceptionInterface;
 
 /**
- * ネットワーク障害を再現するための PSR-18 例外。
+ * ネットワーク障害を再現するための HttpClientExceptionInterface 実装。
  */
-class FakeClientException extends \RuntimeException implements ClientExceptionInterface
+class FakeClientException extends \RuntimeException implements HttpClientExceptionInterface
 {
 }

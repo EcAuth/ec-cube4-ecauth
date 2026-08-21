@@ -1,13 +1,13 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
-use Plugin\EcAuthLogin43\Repository\ConfigRepository;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientExceptionInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientInterface;
+use Plugin\EcAuthLogin40\Http\RequestFactoryInterface;
+use Plugin\EcAuthLogin40\Http\StreamFactoryInterface;
+use Plugin\EcAuthLogin40\Repository\ConfigRepository;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 class EcAuthApiClient
@@ -18,7 +18,7 @@ class EcAuthApiClient
     private $configRepository;
 
     /**
-     * @var ClientInterface
+     * @var HttpClientInterface
      */
     private $httpClient;
 
@@ -44,7 +44,7 @@ class EcAuthApiClient
 
     public function __construct(
         ConfigRepository $configRepository,
-        ClientInterface $httpClient,
+        HttpClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
         BaseUrlValidator $baseUrlValidator,
@@ -328,7 +328,7 @@ class EcAuthApiClient
                 'status' => $statusCode,
                 'data' => $content,
             ];
-        } catch (ClientExceptionInterface $e) {
+        } catch (HttpClientExceptionInterface $e) {
             $this->logger->error('EcAuth API request failed', [
                 'path' => $path,
                 'error' => $e->getMessage(),

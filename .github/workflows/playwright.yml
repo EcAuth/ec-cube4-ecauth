@@ -2,27 +2,21 @@ name: Playwright E2E Tests
 
 on:
   push:
-    branches: [main]
+    branches: [4.0]
   pull_request:
-    branches: [main]
+    branches: [4.0]
   workflow_dispatch:
-    inputs:
-      install_source:
-        description: 'プラグインのインストール元'
-        type: choice
-        options:
-          - local
-          - package-api
-        default: local
-      plugin_version:
-        description: 'package-api から入れるプラグインのバージョン（空なら最新）'
-        type: string
-        required: false
 
 jobs:
   e2e:
-    name: E2E Tests
+    name: E2E Tests (EC-CUBE ${{ matrix.eccube-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 4.0 系と 4.1 系は Symfony が 3.4 / 4.4 と異なるため、両方で回す。
+        # プラグインのコードは 1 つなので、片方だけ通っても互換の担保にならない。
+        eccube-version: ['4.0.6-p5', '4.1.2-p5']
     steps:
       - uses: actions/checkout@v7
 
@@ -50,27 +44,15 @@ jobs:
           STAGING_CLIENT_SECRET: op://EcAuth/ecauth-staging-app/client_secret
           STAGING_WEB_APP_SUFFIX: op://EcAuth/ecauth-staging-app/web_app_suffix
 
-      # オーナーズストアの検証キー（X-ECCUBE-KEY）。
-      # 設定されている場合のみ docker-entrypoint.sh が package-api から
-      # 「申請中のパッケージ」をインストールする。既定（push / pull_request）では
-      # このステップが動かないため、/plugin のローカルソースが使われる。
-      # fork からの PR には secrets が無いので、この分岐は必須。
-      - name: Load EC-CUBE verification key from 1Password
-        if: ${{ inputs.install_source == 'package-api' }}
-        uses: 1password/load-secrets-action@eb2efd0703da22a93c467f2d1ffbb6826c11e19c # v4.1.1
-        with:
-          export-env: true
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          ECCUBE_AUTHENTICATION_KEY: op://EcAuth/eccube4-ecauth-plugin/eccube_authentication_key
-
       - name: Start Docker environment
-        # ECCUBE_AUTHENTICATION_KEY は直前のステップが export-env で job の env に載せる
-        # （そのステップが動かなければ未設定のまま）。docker compose はそれを継承するので
-        # ここで再指定はしない。未設定＝ローカルソースからのインストール。
+        # 4.0/4.1 系には公式イメージが無いため、ここで EC-CUBE 本体ごとビルドする
+        # (Dockerfile が downloads.ec-cube.net の配布パッケージを取得する)。
+        # プラグインは entrypoint が tar.gz を作って
+        # eccube:plugin:install --path= で入れる。4.2/4.3 版のような
+        # eccube:composer:require --from= は 4.0/4.1 に存在しない。
         run: docker compose up -d --build --wait
         env:
-          ECAUTH_PLUGIN_VERSION: ${{ inputs.plugin_version }}
+          ECCUBE_VERSION: ${{ matrix.eccube-version }}
           # E2E は staging の EcAuth を指すため、プラグイン既定の許可ホスト
           # (.ec-auth.io) だけでは設定を保存できない。
           # .azurewebsites.net のようなサフィックス指定にはしないこと。
@@ -94,6 +76,13 @@ jobs:
             echo "EC-CUBE did not become ready in time" >&2
             exit 1
           fi
+
+      - name: Verify plugin is installed and enabled
+        # ここで落ちれば「プラグインが入っていない」ことが明確になり、
+        # 個々の spec の失敗として現れるより切り分けが早い。
+        run: |
+          docker compose exec -T ec-cube bin/console doctrine:query:sql \
+            "select code, version, enabled from dtb_plugin where code = 'EcAuthLogin40'"
 
       - name: Warm up staging EcAuth
         # staging の App Service は Free tier のため alwaysOn を有効化できず、
@@ -152,7 +141,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.eccube-version }}
           path: |
             test-results/
             playwright-report/
@@ -168,13 +157,18 @@ jobs:
   # 他の E2E はパスワードで管理画面にログインするため、同じコンテナでは同居できない。
   # env だけ差し替えてコンテナを作り直す手も使えない（DB は volume で残るのに
   # プラグインの導入状態はコンテナ側にしか無く、docker-entrypoint.sh の
-  # eccube:plugin:enable が「既に有効」で落ちる）。素直に別ジョブでクリーンな環境を立てる。
+  # eccube:plugin:install が「既にインストール済み」で落ちる）。
+  # 素直に別ジョブでクリーンな環境を立てる。
   #
   # EcAuth への接続は不要（パスワード認証を塞げているかだけを見る）なので
   # 1Password の secrets を使わない。fork からの PR でも動く。
   e2e-password-login-disabled:
-    name: E2E Tests (password login disabled)
+    name: E2E Tests (password login disabled, EC-CUBE ${{ matrix.eccube-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        eccube-version: ['4.0.6-p5', '4.1.2-p5']
     steps:
       - uses: actions/checkout@v7
 
@@ -195,6 +189,7 @@ jobs:
       - name: Start Docker environment with admin password login disabled
         run: docker compose up -d --build --wait
         env:
+          ECCUBE_VERSION: ${{ matrix.eccube-version }}
           ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN: '1'
 
       - name: Wait for EC-CUBE to be ready
@@ -231,7 +226,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-password-login-disabled
+          name: playwright-report-password-login-disabled-${{ matrix.eccube-version }}
           path: |
             test-results/
             playwright-report/

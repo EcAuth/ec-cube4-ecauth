@@ -1,32 +1,28 @@
 {
-  "name": "ec-cube/ecauthlogin43",
+  "name": "ec-cube/ecauthlogin40",
   "version": "1.1.0",
-  "description": "EC-CUBE 4.2/4.3系向け EcAuth 認証プラグイン",
+  "description": "EC-CUBE 4.0/4.1系向け EcAuth 認証プラグイン",
   "type": "eccube-plugin",
   "license": "LGPL-2.1-or-later",
   "extra": {
-    "code": "EcAuthLogin43",
-    "id": 3557
+    "code": "EcAuthLogin40",
+    "id": 0
   },
   "require": {
-    "ec-cube/plugin-installer": "^2.0",
-    "psr/cache": "^1.0 || ^2.0 || ^3.0",
-    "psr/http-client": "^1.0",
-    "psr/http-factory": "^1.0",
-    "psr/http-message": "^1.0 || ^2.0",
-    "psr/log": "^1.0 || ^2.0 || ^3.0"
+    "ec-cube/plugin-installer": "~0.0.6 || ^2.0"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.64",
+    "guzzlehttp/guzzle": "^6.3",
     "nyholm/psr7": "^1.8",
     "phpstan/phpstan": "^1.10",
     "phpunit/phpunit": "^9.6",
     "rector/rector": "^1.0",
-    "symfony/cache": "^5.4 || ^6.4 || ^7.0"
+    "symfony/cache": "^3.4 || ^4.4 || ^5.4"
   },
   "autoload-dev": {
     "psr-4": {
-      "Plugin\\EcAuthLogin43\\": ""
+      "Plugin\\EcAuthLogin40\\": ""
     }
   },
   "scripts": {

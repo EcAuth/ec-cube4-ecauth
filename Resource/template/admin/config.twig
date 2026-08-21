@@ -2,8 +2,8 @@
 
 {% set menus = ['setting', 'plugin', 'plugin_list'] %}
 
-{% block title %}{{ 'ecauth_login43.admin.config.title'|trans }}{% endblock %}
-{% block sub_title %}{{ 'ecauth_login43.admin.config.sub_title'|trans }}{% endblock %}
+{% block title %}{{ 'ecauth_login40.admin.config.title'|trans }}{% endblock %}
+{% block sub_title %}{{ 'ecauth_login40.admin.config.sub_title'|trans }}{% endblock %}
 
 {% form_theme form '@admin/Form/bootstrap_4_horizontal_layout.html.twig' %}
 
@@ -30,37 +30,37 @@
             <div class="c-contentsArea__primaryCol">
                 <div class="c-primaryCol">
                     <div class="card rounded border-0 mb-4">
-                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.signup.header'|trans }}</span></div>
+                        <div class="card-header"><span>{{ 'ecauth_login40.admin.config.signup.header'|trans }}</span></div>
                         <div class="card-body">
-                            <p class="mb-4">{{ 'ecauth_login43.admin.config.signup.intro'|trans }}</p>
+                            <p class="mb-4">{{ 'ecauth_login40.admin.config.signup.intro'|trans }}</p>
 
-                            <p class="fw-bold mb-2">{{ 'ecauth_login43.admin.config.signup.first_time.header'|trans }}</p>
-                            <ol id="ecauth-signup-steps" class="mb-3 ps-4">
-                                <li class="mb-1">{{ 'ecauth_login43.admin.config.signup.first_time.step1'|trans }}</li>
-                                <li class="mb-1">{{ 'ecauth_login43.admin.config.signup.first_time.step2'|trans }}</li>
-                                <li>{{ 'ecauth_login43.admin.config.signup.first_time.step3'|trans }}</li>
+                            <p class="fw-bold mb-2">{{ 'ecauth_login40.admin.config.signup.first_time.header'|trans }}</p>
+                            <ol id="ecauth-signup-steps" class="mb-3 pl-4">
+                                <li class="mb-1">{{ 'ecauth_login40.admin.config.signup.first_time.step1'|trans }}</li>
+                                <li class="mb-1">{{ 'ecauth_login40.admin.config.signup.first_time.step2'|trans }}</li>
+                                <li>{{ 'ecauth_login40.admin.config.signup.first_time.step3'|trans }}</li>
                             </ol>
                             <a class="btn btn-ec-regular" id="ecauth-signup-link" href="{{ signup_url }}" target="_blank" rel="noopener noreferrer">
-                                <i class="fa fa-external-link me-1"></i>{{ 'ecauth_login43.admin.config.signup.link'|trans }}
+                                <i class="fa fa-external-link mr-1"></i>{{ 'ecauth_login40.admin.config.signup.link'|trans }}
                             </a>
 
                             <hr class="my-4">
 
-                            <p class="fw-bold mb-2">{{ 'ecauth_login43.admin.config.signup.registered.header'|trans }}</p>
-                            <p class="mb-3">{{ 'ecauth_login43.admin.config.signup.registered.description'|trans }}</p>
+                            <p class="fw-bold mb-2">{{ 'ecauth_login40.admin.config.signup.registered.header'|trans }}</p>
+                            <p class="mb-3">{{ 'ecauth_login40.admin.config.signup.registered.description'|trans }}</p>
                             <a class="btn btn-ec-regular" id="ecauth-mypage-link" href="{{ mypage_url }}" target="_blank" rel="noopener noreferrer">
-                                <i class="fa fa-external-link me-1"></i>{{ 'ecauth_login43.admin.config.signup.mypage.link'|trans }}
+                                <i class="fa fa-external-link mr-1"></i>{{ 'ecauth_login40.admin.config.signup.mypage.link'|trans }}
                             </a>
                         </div>
                     </div>
 
                     <div class="card rounded border-0 mb-4">
-                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.header'|trans }}</span></div>
+                        <div class="card-header"><span>{{ 'ecauth_login40.admin.config.header'|trans }}</span></div>
                         <div class="card-body">
                             <div class="row mb-2">
                                 <div class="col-3">
-                                    <span>{{ 'ecauth_login43.admin.config.client_id'|trans }}</span>
-                                    <span class="badge badge-primary ms-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
+                                    <span>{{ 'ecauth_login40.admin.config.client_id'|trans }}</span>
+                                    <span class="badge badge-primary ml-1">{{ 'ecauth_login40.admin.config.required'|trans }}</span>
                                 </div>
                                 <div class="col">
                                     {# attr に id を渡しても Symfony が出力する id="config_client_id" が消えず
@@ -68,13 +68,13 @@
                                        JS 側は form.client_id.vars.id で本来の id を引く。 #}
                                     {{ form_widget(form.client_id, { attr: { 'data-saved': saved_client_id } }) }}
                                     {{ form_errors(form.client_id) }}
-                                    <p class="form-text text-muted" id="ecauth-client-id-caution">{{ 'ecauth_login43.admin.config.tenant_changed.caution'|trans }}</p>
+                                    <p class="form-text text-muted" id="ecauth-client-id-caution">{{ 'ecauth_login40.admin.config.tenant_changed.caution'|trans }}</p>
                                 </div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-3">
-                                    <span>{{ 'ecauth_login43.admin.config.client_secret'|trans }}</span>
-                                    <span class="badge badge-primary ms-1">{{ 'ecauth_login43.admin.config.required'|trans }}</span>
+                                    <span>{{ 'ecauth_login40.admin.config.client_secret'|trans }}</span>
+                                    <span class="badge badge-primary ml-1">{{ 'ecauth_login40.admin.config.required'|trans }}</span>
                                 </div>
                                 <div class="col">
                                     {{ form_widget(form.client_secret, { attr: has_client_secret ? { placeholder: '••••••••••••••••' } : {} }) }}
@@ -88,34 +88,40 @@
                        折りたたんだままだとエラー文言が見えず、保存されない理由が分からなくなる
                        （EcAuthDocs #101 で EcAuth URL の許可リスト検証を追加したため）。 #}
                     {% set advanced_has_errors = form.ecauth_base_url.vars.errors|length > 0 or form.rp_id.vars.errors|length > 0 %}
+                    {# 属性は data-bs-* ではなく data-* を使うこと。
+                       EC-CUBE 4.0/4.1 の管理画面が読み込むのは Bootstrap 4.3.1 で、
+                       data-bs-* (Bootstrap 5 の名前空間) は認識されない。書き換えると
+                       「クリックしても高度な設定が開かない」という形で壊れる。
+                       同じ理由で余白は ms-/me-/ps- ではなく ml-/mr-/pl- を、
+                       バッジは badge bg-* ではなく badge badge-* を使う。 #}
                     <div class="card rounded border-0 mb-4">
                         <div class="card-header">
-                            <button class="btn btn-link p-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#ecauth-advanced-settings" aria-expanded="{{ advanced_has_errors ? 'true' : 'false' }}" aria-controls="ecauth-advanced-settings">
-                                <i class="fa fa-caret-right me-1"></i>
-                                <span>{{ 'ecauth_login43.admin.config.advanced_settings'|trans }}</span>
+                            <button class="btn btn-link p-0 text-decoration-none" type="button" data-toggle="collapse" data-target="#ecauth-advanced-settings" aria-expanded="{{ advanced_has_errors ? 'true' : 'false' }}" aria-controls="ecauth-advanced-settings">
+                                <i class="fa fa-caret-right mr-1"></i>
+                                <span>{{ 'ecauth_login40.admin.config.advanced_settings'|trans }}</span>
                             </button>
                         </div>
                         <div id="ecauth-advanced-settings" class="collapse{{ advanced_has_errors ? ' show' : '' }}">
                             <div class="card-body">
-                                <p class="form-text text-muted mb-3">{{ 'ecauth_login43.admin.config.advanced_settings.help'|trans }}</p>
+                                <p class="form-text text-muted mb-3">{{ 'ecauth_login40.admin.config.advanced_settings.help'|trans }}</p>
                                 <div class="row mb-2">
                                     <div class="col-3">
-                                        <span>{{ 'ecauth_login43.admin.config.ecauth_base_url'|trans }}</span>
+                                        <span>{{ 'ecauth_login40.admin.config.ecauth_base_url'|trans }}</span>
                                     </div>
                                     <div class="col">
                                         {{ form_widget(form.ecauth_base_url, { attr: { placeholder: 'https://shop1.ec-auth.io' } }) }}
                                         {{ form_errors(form.ecauth_base_url) }}
-                                        <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.ecauth_base_url.help'|trans }}</p>
+                                        <p class="form-text text-muted">{{ 'ecauth_login40.admin.config.ecauth_base_url.help'|trans }}</p>
                                     </div>
                                 </div>
                                 <div class="row mb-2">
                                     <div class="col-3">
-                                        <span>{{ 'ecauth_login43.admin.config.rp_id'|trans }}</span>
+                                        <span>{{ 'ecauth_login40.admin.config.rp_id'|trans }}</span>
                                     </div>
                                     <div class="col">
                                         {{ form_widget(form.rp_id) }}
                                         {{ form_errors(form.rp_id) }}
-                                        <p class="form-text text-muted">{{ 'ecauth_login43.admin.config.rp_id.help'|trans }}</p>
+                                        <p class="form-text text-muted">{{ 'ecauth_login40.admin.config.rp_id.help'|trans }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -123,15 +129,15 @@
                     </div>
 
                     <div class="card rounded border-0 mb-4">
-                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.next_step.header'|trans }}</span></div>
+                        <div class="card-header"><span>{{ 'ecauth_login40.admin.config.next_step.header'|trans }}</span></div>
                         <div class="card-body">
                             {% if has_client_secret %}
-                                <p class="mb-3">{{ 'ecauth_login43.admin.config.next_step.description.ready'|trans }}</p>
-                                <a class="btn btn-ec-regular" href="{{ url('ecauth_login43_admin_passkey') }}">
-                                    <i class="fa fa-key me-1"></i>{{ 'ecauth_login43.admin.config.next_step.link'|trans }}
+                                <p class="mb-3">{{ 'ecauth_login40.admin.config.next_step.description.ready'|trans }}</p>
+                                <a class="btn btn-ec-regular" href="{{ url('ecauth_login40_admin_passkey') }}">
+                                    <i class="fa fa-key mr-1"></i>{{ 'ecauth_login40.admin.config.next_step.link'|trans }}
                                 </a>
                             {% else %}
-                                <p class="mb-0 text-muted">{{ 'ecauth_login43.admin.config.next_step.description.pending'|trans }}</p>
+                                <p class="mb-0 text-muted">{{ 'ecauth_login40.admin.config.next_step.description.pending'|trans }}</p>
                             {% endif %}
                         </div>
                     </div>
@@ -141,36 +147,36 @@
                        変えられるようにすると、乗っ取られた時点でパスワード認証を戻されて
                        しまい、この機構が守りにならないため（Service/AdminPasswordLoginPolicy）。 #}
                     <div class="card rounded border-0 mb-4">
-                        <div class="card-header"><span>{{ 'ecauth_login43.admin.config.password_login.header'|trans }}</span></div>
+                        <div class="card-header"><span>{{ 'ecauth_login40.admin.config.password_login.header'|trans }}</span></div>
                         <div class="card-body">
                             <div class="row mb-3">
                                 <div class="col-3">
-                                    <span>{{ 'ecauth_login43.admin.config.password_login.status'|trans }}</span>
+                                    <span>{{ 'ecauth_login40.admin.config.password_login.status'|trans }}</span>
                                 </div>
                                 <div class="col">
                                     {% if password_login_disabled %}
-                                        <span id="ecauth-password-login-status" class="badge bg-success" data-status="disabled">{{ 'ecauth_login43.admin.config.password_login.status.disabled'|trans }}</span>
+                                        <span id="ecauth-password-login-status" class="badge badge-success" data-status="disabled">{{ 'ecauth_login40.admin.config.password_login.status.disabled'|trans }}</span>
                                     {% else %}
-                                        <span id="ecauth-password-login-status" class="badge bg-secondary" data-status="enabled">{{ 'ecauth_login43.admin.config.password_login.status.enabled'|trans }}</span>
+                                        <span id="ecauth-password-login-status" class="badge badge-secondary" data-status="enabled">{{ 'ecauth_login40.admin.config.password_login.status.enabled'|trans }}</span>
                                     {% endif %}
                                 </div>
                             </div>
 
-                            <p class="mb-3">{{ 'ecauth_login43.admin.config.password_login.description'|trans({'%env%': password_login_env_name}) }}</p>
+                            <p class="mb-3">{{ 'ecauth_login40.admin.config.password_login.description'|trans({'%env%': password_login_env_name}) }}</p>
 
-                            <ul id="ecauth-password-login-how-to" class="mb-3 ps-4">
-                                <li class="mb-1">{{ 'ecauth_login43.admin.config.password_login.how_to.disable'|trans({'%env%': password_login_env_name}) }}</li>
-                                <li>{{ 'ecauth_login43.admin.config.password_login.how_to.enable'|trans({'%env%': password_login_env_name}) }}</li>
+                            <ul id="ecauth-password-login-how-to" class="mb-3 pl-4">
+                                <li class="mb-1">{{ 'ecauth_login40.admin.config.password_login.how_to.disable'|trans({'%env%': password_login_env_name}) }}</li>
+                                <li>{{ 'ecauth_login40.admin.config.password_login.how_to.enable'|trans({'%env%': password_login_env_name}) }}</li>
                             </ul>
 
                             {% if password_login_disabled %}
                                 <div class="alert alert-warning mb-0">
-                                    <p class="mb-1">{{ 'ecauth_login43.admin.config.password_login.caution.lost_passkey'|trans({'%env%': password_login_env_name}) }}</p>
-                                    <p class="mb-0">{{ 'ecauth_login43.admin.config.password_login.caution.new_member'|trans }}</p>
+                                    <p class="mb-1">{{ 'ecauth_login40.admin.config.password_login.caution.lost_passkey'|trans({'%env%': password_login_env_name}) }}</p>
+                                    <p class="mb-0">{{ 'ecauth_login40.admin.config.password_login.caution.new_member'|trans }}</p>
                                 </div>
                             {% else %}
                                 <div class="alert alert-warning mb-0">
-                                    <p class="mb-0">{{ 'ecauth_login43.admin.config.password_login.caution.before_disable'|trans }}</p>
+                                    <p class="mb-0">{{ 'ecauth_login40.admin.config.password_login.caution.before_disable'|trans }}</p>
                                 </div>
                             {% endif %}
                         </div>
@@ -185,14 +191,14 @@
                         <div class="c-conversionArea__leftBlockItem">
                             <a class="c-baseLink" href="{{ url('admin_store_plugin') }}">
                                 <i class="fa fa-backward" aria-hidden="true"></i>
-                                <span>{{ 'ecauth_login43.admin.config.back'|trans }}</span>
+                                <span>{{ 'ecauth_login40.admin.config.back'|trans }}</span>
                             </a>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="row align-items-center justify-content-end">
                             <div class="col-auto">
-                                <button class="btn btn-ec-conversion px-5" type="submit">{{ 'ecauth_login43.admin.config.save'|trans }}</button>
+                                <button class="btn btn-ec-conversion px-5" type="submit">{{ 'ecauth_login40.admin.config.save'|trans }}</button>
                             </div>
                         </div>
                     </div>
@@ -215,7 +221,7 @@
                 return;
             }
 
-            var CONFIRM_MESSAGE = '{{ 'ecauth_login43.admin.config.tenant_changed.confirm'|trans|e('js') }}';
+            var CONFIRM_MESSAGE = '{{ 'ecauth_login40.admin.config.tenant_changed.confirm'|trans|e('js') }}';
 
             input.form.addEventListener('submit', function (event) {
                 var saved = (input.getAttribute('data-saved') || '').trim();

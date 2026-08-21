@@ -1,11 +1,11 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit;
+namespace Plugin\EcAuthLogin40\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Plugin\EcAuthLogin43\Service\IdTokenVerifier;
-use Plugin\EcAuthLogin43\Tests\Unit\Support\FakeJwksProvider;
-use Plugin\EcAuthLogin43\Tests\Unit\Support\RsaKeyFixture;
+use Plugin\EcAuthLogin40\Service\IdTokenVerifier;
+use Plugin\EcAuthLogin40\Tests\Unit\Support\FakeJwksProvider;
+use Plugin\EcAuthLogin40\Tests\Unit\Support\RsaKeyFixture;
 use Psr\Log\NullLogger;
 
 /**
@@ -184,21 +184,21 @@ class IdTokenVerifierTest extends TestCase
 
     public function testExpiredTokenIsRejected(): void
     {
-        $token = self::$key->sign($this->claims(['exp' => 1_700_000_000 - 3600]));
+        $token = self::$key->sign($this->claims(['exp' => 1700000000 - 3600]));
 
         self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
     }
 
     public function testTokenWithFutureNbfIsRejected(): void
     {
-        $token = self::$key->sign($this->claims(['nbf' => 1_700_000_000 + 3600]));
+        $token = self::$key->sign($this->claims(['nbf' => 1700000000 + 3600]));
 
         self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
     }
 
     public function testTokenIssuedInTheFutureIsRejected(): void
     {
-        $token = self::$key->sign($this->claims(['iat' => 1_700_000_000 + 3600]));
+        $token = self::$key->sign($this->claims(['iat' => 1700000000 + 3600]));
 
         self::assertNull($this->createVerifier()->verify($token, self::ISSUER, self::AUDIENCE));
     }
@@ -289,9 +289,9 @@ class IdTokenVerifierTest extends TestCase
             'sub' => 'b2b-subject-uuid',
             'iss' => self::ISSUER,
             'aud' => self::AUDIENCE,
-            'iat' => 1_700_000_000 - 60,
-            'nbf' => 1_700_000_000 - 60,
-            'exp' => 1_700_000_000 + 3600,
+            'iat' => 1700000000 - 60,
+            'nbf' => 1700000000 - 60,
+            'exp' => 1700000000 + 3600,
             'jti' => 'token-id',
         ], $override);
     }
@@ -300,7 +300,7 @@ class IdTokenVerifierTest extends TestCase
     {
         return new TestableIdTokenVerifier(
             new FakeJwksProvider([self::$key->jwk()]),
-            new NullLogger(),
+            new NullLogger()
         );
     }
 }
@@ -312,6 +312,6 @@ class TestableIdTokenVerifier extends IdTokenVerifier
 {
     protected function now(): int
     {
-        return 1_700_000_000;
+        return 1700000000;
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Controller\Admin;
+namespace Plugin\EcAuthLogin40\Controller\Admin;
 
 use Eccube\Controller\AbstractController;
-use Plugin\EcAuthLogin43\Service\EcAuthApiClient;
-use Plugin\EcAuthLogin43\Service\PasskeyAuthService;
+use Plugin\EcAuthLogin40\Service\EcAuthApiClient;
+use Plugin\EcAuthLogin40\Service\PasskeyAuthService;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -47,8 +47,8 @@ class PasskeyController extends AbstractController
     /**
      * パスキー管理画面（一覧）
      *
-     * @Route("/%eccube_admin_route%/ecauth/passkey/", name="ecauth_login43_admin_passkey")
-     * @Template("@EcAuthLogin43/admin/passkey_list.twig")
+     * @Route("/%eccube_admin_route%/ecauth/passkey/", name="ecauth_login40_admin_passkey")
+     * @Template("@EcAuthLogin40/admin/passkey_list.twig")
      */
     public function index(Request $request)
     {
@@ -64,12 +64,12 @@ class PasskeyController extends AbstractController
             if ($result['status'] === 200) {
                 $passkeys = $result['data']['passkeys'] ?? [];
             } else {
-                $error = 'ecauth_login43.admin.passkey.config_required';
+                $error = 'ecauth_login40.admin.passkey.config_required';
             }
         } else {
             // /v1/b2b/passkey/list は Bearer Token 認証必須のため、パスワードログインした
             // 管理者には access token が無く一覧を取得できない。UI 上で案内する。
-            $error = 'ecauth_login43.admin.passkey.login_required';
+            $error = 'ecauth_login40.admin.passkey.login_required';
         }
 
         return [
@@ -84,7 +84,7 @@ class PasskeyController extends AbstractController
     /**
      * パスキー削除
      *
-     * @Route("/%eccube_admin_route%/ecauth/passkey/{credentialId}/delete", name="ecauth_login43_admin_passkey_delete", methods={"DELETE"})
+     * @Route("/%eccube_admin_route%/ecauth/passkey/{credentialId}/delete", name="ecauth_login40_admin_passkey_delete", methods={"DELETE"})
      */
     public function delete(Request $request, string $credentialId)
     {
@@ -94,26 +94,26 @@ class PasskeyController extends AbstractController
         $accessToken = $session->get('ecauth_access_token');
 
         if (!$accessToken) {
-            $this->addError('ecauth_login43.admin.passkey.config_required', 'admin');
+            $this->addError('ecauth_login40.admin.passkey.config_required', 'admin');
 
-            return $this->redirectToRoute('ecauth_login43_admin_passkey');
+            return $this->redirectToRoute('ecauth_login40_admin_passkey');
         }
 
         $result = $this->apiClient->deletePasskey($accessToken, $credentialId);
 
         if ($result['status'] === 200 || $result['status'] === 204) {
-            $this->addSuccess('ecauth_login43.admin.passkey.delete.success', 'admin');
+            $this->addSuccess('ecauth_login40.admin.passkey.delete.success', 'admin');
         } else {
-            $this->addError('ecauth_login43.admin.passkey.delete.error', 'admin');
+            $this->addError('ecauth_login40.admin.passkey.delete.error', 'admin');
         }
 
-        return $this->redirectToRoute('ecauth_login43_admin_passkey');
+        return $this->redirectToRoute('ecauth_login40_admin_passkey');
     }
 
     /**
      * 本人確認（パスワード再入力）
      *
-     * @Route("/%eccube_admin_route%/ecauth/passkey/verify-password", name="ecauth_login43_admin_passkey_verify_password", methods={"POST"})
+     * @Route("/%eccube_admin_route%/ecauth/passkey/verify-password", name="ecauth_login40_admin_passkey_verify_password", methods={"POST"})
      */
     public function verifyPassword(Request $request): JsonResponse
     {
@@ -135,7 +135,7 @@ class PasskeyController extends AbstractController
         $Member = $this->getUser();
 
         if (!$this->passkeyAuthService->verifyPassword($Member, $password)) {
-            return $this->json(['error' => 'ecauth_login43.admin.passkey.verify_password.error'], 401);
+            return $this->json(['error' => 'ecauth_login40.admin.passkey.verify_password.error'], 401);
         }
 
         // ecauth_subject を確保（JIT プロビジョニング）

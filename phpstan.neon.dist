@@ -1,9 +1,13 @@
 parameters:
     level: 6
+    # 解析対象コードの PHP バージョン。EC-CUBE 4.0 の下限に合わせる。
+    # 7.1 で使えない関数・構文を使っていればここで検出される。
+    phpVersion: 70100
     paths:
         - Controller
         - Entity
         - Form
+        - Http
         - Repository
         - Security
         - Service

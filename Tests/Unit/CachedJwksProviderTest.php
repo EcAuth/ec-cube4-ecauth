@@ -1,13 +1,13 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit;
+namespace Plugin\EcAuthLogin40\Tests\Unit;
 
-use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
-use Plugin\EcAuthLogin43\Service\CachedJwksProvider;
-use Plugin\EcAuthLogin43\Tests\Unit\Support\FailingCachePool;
-use Plugin\EcAuthLogin43\Tests\Unit\Support\FakeClientException;
-use Plugin\EcAuthLogin43\Tests\Unit\Support\FakeHttpClient;
+use Plugin\EcAuthLogin40\Service\CachedJwksProvider;
+use Plugin\EcAuthLogin40\Tests\Unit\Support\FailingCachePool;
+use Plugin\EcAuthLogin40\Tests\Unit\Support\FakeClientException;
+use Plugin\EcAuthLogin40\Tests\Unit\Support\FakeHttpClient;
+use Plugin\EcAuthLogin40\Tests\Unit\Support\TestPsr17Factory;
 use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -43,7 +43,7 @@ class CachedJwksProviderTest extends TestCase
 
         self::assertSame(
             self::BASE_URL.'/.well-known/jwks.json',
-            (string) $client->requests[0]->getUri(),
+            (string) $client->requests[0]->getUri()
         );
     }
 
@@ -132,15 +132,15 @@ class CachedJwksProviderTest extends TestCase
 
         self::assertNull(
             $this->createProvider(new FakeHttpClient([['status' => 200, 'body' => 'not json']]), $cache)
-                ->getJwks(self::BASE_URL),
+                ->getJwks(self::BASE_URL)
         );
         self::assertNull(
             $this->createProvider(new FakeHttpClient([['status' => 200, 'body' => '{"keys":[]}']]), $cache)
-                ->getJwks(self::BASE_URL),
+                ->getJwks(self::BASE_URL)
         );
         self::assertNull(
             $this->createProvider(new FakeHttpClient([['status' => 200, 'body' => '{"foo":1}']]), $cache)
-                ->getJwks(self::BASE_URL),
+                ->getJwks(self::BASE_URL)
         );
         // 取得失敗をキャッシュしてはいけない。
         // ArrayAdapter はミス時にもキーを null で保持するため、実値だけを見る。
@@ -166,9 +166,9 @@ class CachedJwksProviderTest extends TestCase
         ]);
         $provider = new CachedJwksProvider(
             $client,
-            new Psr17Factory(),
+            new TestPsr17Factory(),
             new FailingCachePool(true),
-            new NullLogger(),
+            new NullLogger()
         );
 
         $keys = $provider->getJwks(self::BASE_URL);
@@ -188,9 +188,9 @@ class CachedJwksProviderTest extends TestCase
         ]);
         $provider = new CachedJwksProvider(
             $client,
-            new Psr17Factory(),
+            new TestPsr17Factory(),
             new FailingCachePool(false, true),
-            new NullLogger(),
+            new NullLogger()
         );
 
         self::assertIsArray($provider->getJwks(self::BASE_URL));
@@ -198,7 +198,7 @@ class CachedJwksProviderTest extends TestCase
 
     private function createProvider(FakeHttpClient $client, ArrayAdapter $cache): CachedJwksProvider
     {
-        return new CachedJwksProvider($client, new Psr17Factory(), $cache, new NullLogger());
+        return new CachedJwksProvider($client, new TestPsr17Factory(), $cache, new NullLogger());
     }
 
     private function jwksBody(string $kid): string

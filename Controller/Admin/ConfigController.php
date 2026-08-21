@@ -1,22 +1,22 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Controller\Admin;
+namespace Plugin\EcAuthLogin40\Controller\Admin;
 
 use Eccube\Controller\AbstractController;
-use Plugin\EcAuthLogin43\Form\Type\Admin\ConfigType;
-use Plugin\EcAuthLogin43\Repository\ConfigRepository;
-use Plugin\EcAuthLogin43\Service\AdminPasswordLoginPolicy;
-use Plugin\EcAuthLogin43\Service\BaseUrlValidator;
-use Plugin\EcAuthLogin43\Service\ClientResolveService;
-use Plugin\EcAuthLogin43\Service\PasskeyAuthService;
-use Plugin\EcAuthLogin43\Service\TenantChangePolicy;
+use Plugin\EcAuthLogin40\Form\Type\Admin\ConfigType;
+use Plugin\EcAuthLogin40\Repository\ConfigRepository;
+use Plugin\EcAuthLogin40\Service\AdminPasswordLoginPolicy;
+use Plugin\EcAuthLogin40\Service\BaseUrlValidator;
+use Plugin\EcAuthLogin40\Service\ClientResolveService;
+use Plugin\EcAuthLogin40\Service\PasskeyAuthService;
+use Plugin\EcAuthLogin40\Service\TenantChangePolicy;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\Translation\TranslatorInterface;
 
 class ConfigController extends AbstractController
 {
@@ -96,12 +96,12 @@ class ConfigController extends AbstractController
     /**
      * EC-CUBE 管理画面のプラグイン一覧 (/admin/store/plugin) で歯車アイコンを
      * 表示させるため、Container::underscore(Plugin.code) + '_admin_config' という
-     * ルート名規約 (ec_auth_login43_admin_config) でも引けるよう別名を追加する。
-     * 既存箇所は ecauth_login43_admin_config を使い続けるため両方残す。
+     * ルート名規約 (ec_auth_login40_admin_config) でも引けるよう別名を追加する。
+     * 既存箇所は ecauth_login40_admin_config を使い続けるため両方残す。
      *
-     * @Route("/%eccube_admin_route%/ecauth_login43/config", name="ecauth_login43_admin_config")
-     * @Route("/%eccube_admin_route%/ecauth_login43/config", name="ec_auth_login43_admin_config")
-     * @Template("@EcAuthLogin43/admin/config.twig")
+     * @Route("/%eccube_admin_route%/ecauth_login40/config", name="ecauth_login40_admin_config")
+     * @Route("/%eccube_admin_route%/ecauth_login40/config", name="ec_auth_login40_admin_config")
+     * @Template("@EcAuthLogin40/admin/config.twig")
      */
     public function index(Request $request)
     {
@@ -124,7 +124,7 @@ class ConfigController extends AbstractController
             // 設定画面の confirm() は UI 上の保険にすぎず、JS を経由しない送信でも整合する。
             $clientIdChanged = $this->tenantChangePolicy->hasClientIdChanged(
                 $previousClientId,
-                $Config->getClientId(),
+                $Config->getClientId()
             );
 
             $clientSecret = $form->get('client_secret')->getData();
@@ -134,7 +134,7 @@ class ConfigController extends AbstractController
             // 通らない設定が「保存成功」として残り、原因が分かりにくいので保存前に弾く。
             if ($clientIdChanged && ($clientSecret === null || $clientSecret === '')) {
                 $form->get('client_secret')->addError(
-                    new FormError($this->translator->trans('ecauth_login43.admin.config.tenant_changed.secret_required')),
+                    new FormError($this->translator->trans('ecauth_login40.admin.config.tenant_changed.secret_required'))
                 );
 
                 return $this->createViewParameters($form, $hasClientSecret, $previousClientId);
@@ -170,7 +170,7 @@ class ConfigController extends AbstractController
                     $reusedBaseUrl = $discardedBaseUrl;
                 } else {
                     $form->get('client_id')->addError(
-                        new FormError($this->translator->trans('ecauth_login43.admin.config.client_resolve.failed')),
+                        new FormError($this->translator->trans('ecauth_login40.admin.config.client_resolve.failed'))
                     );
 
                     return $this->createViewParameters($form, $hasClientSecret, $previousClientId);
@@ -183,7 +183,7 @@ class ConfigController extends AbstractController
             $normalizedUrl = $this->baseUrlValidator->normalize($candidateUrl);
             if ($normalizedUrl === null) {
                 $form->get($errorField)->addError(
-                    new FormError($this->translator->trans('ecauth_login43.admin.config.base_url.not_allowed')),
+                    new FormError($this->translator->trans('ecauth_login40.admin.config.base_url.not_allowed'))
                 );
 
                 return $this->createViewParameters($form, $hasClientSecret, $previousClientId);
@@ -204,7 +204,7 @@ class ConfigController extends AbstractController
             $this->entityManager->persist($Config);
             $this->entityManager->flush();
 
-            $this->addSuccess('ecauth_login43.admin.config.save.success', 'admin');
+            $this->addSuccess('ecauth_login40.admin.config.save.success', 'admin');
 
             if ($clientIdChanged) {
                 // 引き継いだ URL は保存されたもの（正規化後）を出す。入力の表記ゆれを
@@ -212,11 +212,11 @@ class ConfigController extends AbstractController
                 $this->onTenantChanged(
                     $request->getSession(),
                     $cleared,
-                    $reusedBaseUrl === null ? null : $normalizedUrl,
+                    $reusedBaseUrl === null ? null : $normalizedUrl
                 );
             }
 
-            return $this->redirectToRoute('ecauth_login43_admin_config');
+            return $this->redirectToRoute('ecauth_login40_admin_config');
         }
 
         return $this->createViewParameters($form, $hasClientSecret, $previousClientId);
@@ -246,18 +246,18 @@ class ConfigController extends AbstractController
         // 管理画面のフラッシュは alert.twig が {{ message|trans }} で描画するだけで
         // パラメータを渡せないため、件数の差し込みはここで済ませてから渡す。
         $message = $cleared === 0
-            ? $this->translator->trans('ecauth_login43.admin.config.tenant_changed.no_target')
-            : $this->translator->trans('ecauth_login43.admin.config.tenant_changed.cleared', ['%count%' => $cleared]);
+            ? $this->translator->trans('ecauth_login40.admin.config.tenant_changed.no_target')
+            : $this->translator->trans('ecauth_login40.admin.config.tenant_changed.cleared', ['%count%' => $cleared]);
 
         $this->addWarning($message, 'admin');
 
         if ($reusedBaseUrl !== null) {
             $this->addWarning(
                 $this->translator->trans(
-                    'ecauth_login43.admin.config.tenant_changed.base_url_reused',
-                    ['%url%' => $reusedBaseUrl],
+                    'ecauth_login40.admin.config.tenant_changed.base_url_reused',
+                    ['%url%' => $reusedBaseUrl]
                 ),
-                'admin',
+                'admin'
             );
         }
     }

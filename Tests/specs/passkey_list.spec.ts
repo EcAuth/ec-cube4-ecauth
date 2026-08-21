@@ -20,7 +20,7 @@ test.describe('パスキー一覧: パスワードログイン時の案内表示
 
     await page.goto(`${ADMIN_URL}/ecauth/passkey/`);
 
-    // 案内文 (ecauth_login43.admin.passkey.login_required) が alert-warning で表示される
+    // 案内文 (ecauth_login40.admin.passkey.login_required) が alert-warning で表示される
     const alert = page.locator('.card-body .alert-warning');
     await expect(alert).toBeVisible();
     await expect(alert).toContainText('パスキー一覧を表示するには');

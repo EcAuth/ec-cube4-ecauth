@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientExceptionInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientInterface;
+use Plugin\EcAuthLogin40\Http\RequestFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 class ClientResolveService
@@ -12,7 +12,7 @@ class ClientResolveService
     private const CLIENT_RESOLVE_PATH = '/platform/v1/client-resolve';
 
     /**
-     * @var ClientInterface
+     * @var HttpClientInterface
      */
     private $httpClient;
 
@@ -33,7 +33,7 @@ class ClientResolveService
     private $discoveryUrl;
 
     public function __construct(
-        ClientInterface $httpClient,
+        HttpClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         LoggerInterface $logger,
         string $discoveryUrl
@@ -100,7 +100,7 @@ class ClientResolveService
                 'status' => $statusCode,
                 'error' => $content['error'] ?? 'unknown_error',
             ];
-        } catch (ClientExceptionInterface $e) {
+        } catch (HttpClientExceptionInterface $e) {
             $this->logger->error('EcAuth client-resolve request failed', [
                 'error' => $e->getMessage(),
             ]);

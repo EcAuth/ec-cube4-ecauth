@@ -4,6 +4,9 @@ updates:
   # GitHub Actions の自動更新
   - package-ecosystem: "github-actions"
     directory: "/"
+    # このブランチは 4.0/4.1 系専用。既定のままだと
+    # default branch (main = 4.2/4.3 版) に PR が出てしまう。
+    target-branch: "4.0"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -34,17 +37,25 @@ updates:
           - "major"
 
   # Composer パッケージの自動更新
-  # require は PSR インタフェースと ec-cube/plugin-installer のみ、
-  # require-dev は静的解析・テストツール（phpstan / rector / php-cs-fixer /
-  # phpunit）。いずれも major 更新の影響は CI（composer phpstan / rector /
-  # cs-check）が検出できるため minor/patch と major の 2 PR に集約する。
+  # require は ec-cube/plugin-installer のみ、require-dev は静的解析・テスト
+  # ツール（phpstan / rector / php-cs-fixer / phpunit）。いずれも major 更新の
+  # 影響は CI（rector / cs-fixer / phpunit）が検出できるため minor/patch と
+  # major の 2 PR に集約する。
   #
-  # 注意: このプラグインは PHP 7.4 互換を維持する必要がある
+  # 注意 1: このプラグインは PHP 7.1 互換を維持する必要がある
   # （CLAUDE.md「コーディング規約」参照）。major 更新 PR をマージする前に
   # rector.php の phpVersion 固定と .php-cs-fixer.dist.php の設定が
-  # 引き続き 7.4 互換を保っているか確認すること。
+  # 引き続き 7.1 互換を保っているか確認すること。
+  #
+  # 注意 2: require に ec-cube/plugin-installer 以外を足してはいけない。
+  # EC-CUBE 4.0 系は Composer v1 のメタデータ提供が終了しており、依存を持つ
+  # プラグインは利用者側で本体 composer.json に vcs リポジトリを書き足さないと
+  # インストールできなくなる（https://doc4.ec-cube.net/plugin_eccube40）。
   - package-ecosystem: "composer"
     directory: "/"
+    # このブランチは 4.0/4.1 系専用。既定のままだと
+    # default branch (main = 4.2/4.3 版) に PR が出てしまう。
+    target-branch: "4.0"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -75,6 +86,9 @@ updates:
   # npm パッケージの自動更新
   - package-ecosystem: "npm"
     directory: "/"
+    # このブランチは 4.0/4.1 系専用。既定のままだと
+    # default branch (main = 4.2/4.3 版) に PR が出てしまう。
+    target-branch: "4.0"
     schedule:
       interval: "weekly"
       day: "wednesday"

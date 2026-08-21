@@ -4,7 +4,7 @@ const ADMIN_URL = '/admin';
 const LOGIN_ID = process.env.ADMIN_LOGIN_ID || 'admin';
 const PASSWORD = process.env.ADMIN_PASSWORD || 'password';
 
-const ADVANCED_TOGGLE = 'button[data-bs-toggle="collapse"][data-bs-target="#ecauth-advanced-settings"]';
+const ADVANCED_TOGGLE = 'button[data-toggle="collapse"][data-target="#ecauth-advanced-settings"]';
 const ADVANCED_PANEL = '#ecauth-advanced-settings';
 
 // 「警告フラッシュが出ていないこと」を見るためのセレクタ。
@@ -57,14 +57,14 @@ test.describe('プラグイン設定画面', () => {
   });
 
   test('設定画面にアクセスできる', async ({ page }) => {
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     // 部分一致だと導線カードの説明文（「下の『EcAuth 接続設定』に入力してください」）にも
     // マッチして strict mode 違反になるため、カード見出しに完全一致させる
     await expect(page.getByText('EcAuth 接続設定', { exact: true })).toBeVisible();
   });
 
   test('申込・マイページへの導線が表示される', async ({ page }) => {
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
 
     // 導線カードは接続設定カードより前（未設定の管理者が最初に目にする位置）に置く
     await expect(page.locator('.c-primaryCol .card-header').first()).toContainText(
@@ -93,7 +93,7 @@ test.describe('プラグイン設定画面', () => {
   // 切り替え方を表示するだけで、フォーム項目は持たない。
   // 無効化した状態そのものの検証は Tests/specs/disable_admin_password.spec.ts 側。
   test('管理画面のパスワード認証の状態が表示される（既定は有効）', async ({ page }) => {
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
 
     const status = page.locator('#ecauth-password-login-status');
     await expect(status).toBeVisible();
@@ -107,7 +107,7 @@ test.describe('プラグイン設定画面', () => {
   });
 
   test('高度な設定がデフォルトで折りたたまれている', async ({ page }) => {
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
 
     // Client ID / Client Secret はメインカードに表示
     await expect(page.locator('input[name="config[client_id]"]')).toBeVisible();
@@ -125,7 +125,7 @@ test.describe('プラグイン設定画面', () => {
   });
 
   test('高度な設定で URL を直接指定して保存できる', async ({ page }) => {
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
 
     await page.fill('input[name="config[client_id]"]', 'test-client-id');
     await page.fill('input[name="config[client_secret]"]', 'test-client-secret');
@@ -141,7 +141,7 @@ test.describe('プラグイン設定画面', () => {
     await expect(page.locator('.alert-success')).toBeVisible();
 
     // 値が永続化されていることを確認
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await expect(page.locator('input[name="config[client_id]"]')).toHaveValue('test-client-id');
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator(ADVANCED_PANEL)).toHaveClass(/show/);
@@ -151,7 +151,7 @@ test.describe('プラグイン設定画面', () => {
   // EcAuthDocs #101: Base URL はトークン交換先かつ JWKS 取得先になるため、
   // 許可リスト外のホストは保存段階で弾く。
   test('#101: 許可されていないホストの EcAuth URL は保存できない', async ({ page }) => {
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
 
     await page.fill('input[name="config[client_id]"]', 'test-client-id');
     await page.fill('input[name="config[client_secret]"]', 'test-client-secret');
@@ -166,7 +166,7 @@ test.describe('プラグイン設定画面', () => {
     await expect(page.locator('text=許可されていないホスト')).toBeVisible();
 
     // 拒否された値が保存されていないこと
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).not.toHaveValue(
       'https://auth.example.com',
@@ -206,7 +206,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(`**${ADMIN_URL}/**`);
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
   });
 
   // 先行 describe が別の client_id を保存しているため、この保存自体がテナント変更に
@@ -240,7 +240,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     // キャンセルしたので送信されない
     await expect(page.locator('.alert-success')).toHaveCount(0);
 
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_A);
   });
 
@@ -255,7 +255,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     await expect(page.locator('text=新しい接続先の Client Secret も入力してください')).toBeVisible();
     await expect(page.locator('.alert-success')).toHaveCount(0);
 
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_A);
   });
 
@@ -284,7 +284,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     // 「高度な設定で URL を直接指定してください」と、既に指定済みの操作を案内していた。
     await expect(page.locator('text=Client ID に対応するテナントが見つかりませんでした')).toHaveCount(0);
 
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_B);
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_A_URL);
@@ -308,7 +308,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
     await expect(page.locator('.alert-success')).toHaveCount(0);
 
     // 弾かれた以上、副作用も残っていないこと
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_B);
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_A_URL);
@@ -335,7 +335,7 @@ test.describe.serial('#52: 接続先テナントの切り替え', () => {
       page.locator(FLASH_WARNING, { hasText: 'EcAuth URL を解決できなかったため' }),
     ).toHaveCount(0);
 
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await expect(page.locator(CLIENT_ID_INPUT)).toHaveValue(TENANT_C);
     await page.click(ADVANCED_TOGGLE);
     await expect(page.locator('input[name="config[ecauth_base_url]"]')).toHaveValue(TENANT_C_URL);

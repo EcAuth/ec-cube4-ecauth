@@ -8,22 +8,27 @@ volumes:
 
 services:
   ec-cube:
-    build: .
+    build:
+      context: .
+      args:
+        # 検証対象の EC-CUBE。4.1 系を試すときは ECCUBE_VERSION=4.1.2-p5 を渡す。
+        # composer のメジャーバージョン (4.0 は v1 / 4.1 は v2) は Dockerfile が
+        # ECCUBE_VERSION から自動で決めるので、ここで指定するのはこの 1 つだけでよい。
+        ECCUBE_VERSION: ${ECCUBE_VERSION:-4.0.6-p5}
+        PHP_TAG: ${PHP_TAG:-7.4-apache-bullseye}
     ports:
       - "8080:80"
       - "8081:443"
     environment:
       APP_ENV: dev
+      APP_DEBUG: 1
       DATABASE_URL: "postgresql://eccube:password@postgres:5432/eccube_db"
-      DATABASE_SERVER_VERSION: 15
-      # オーナーズストアのリリース申請で発行される検証キー（X-ECCUBE-KEY）。
-      # 設定すると docker-entrypoint.sh が package-api から「申請中のパッケージ」を
-      # インストールする。未設定なら従来どおり /plugin のローカルソースから入れる。
-      # 値は 1Password から渡す:
-      #   op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
-      ECCUBE_AUTHENTICATION_KEY: ${ECCUBE_AUTHENTICATION_KEY:-}
-      # package-api から入れるプラグインのバージョン（空なら最新）。非秘密なのでそのまま渡す。
-      ECAUTH_PLUGIN_VERSION: ${ECAUTH_PLUGIN_VERSION:-}
+      # PostgreSQL は 4.0/4.1 のサポート範囲に寄せて 12 を使う。
+      # doctrine/dbal 2.9〜2.13 は新しい PostgreSQL のバージョン検出を持たないため、
+      # 4.2/4.3 版と同じ 15 にはしない。
+      DATABASE_SERVER_VERSION: 12
+      # 4.0/4.1 のメール送信は swiftmailer。4.2 以降の MAILER_DSN ではなく MAILER_URL。
+      MAILER_URL: "null://localhost"
       # EcAuth Base URL として許可するホスト（カンマ区切り）。
       # dev / staging の EcAuth は ec-auth.io 配下に無いため、そこへ繋ぐ場合は
       # ECAUTH_ALLOWED_HOSTS に「完全なホスト名」を足すこと（.env.tpl 参照）。
@@ -45,7 +50,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:12-alpine
     environment:
       TZ: Asia/Tokyo
       POSTGRES_DB: eccube_db

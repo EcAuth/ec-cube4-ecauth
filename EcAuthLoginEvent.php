@@ -1,9 +1,9 @@
 <?php
 
-namespace Plugin\EcAuthLogin43;
+namespace Plugin\EcAuthLogin40;
 
 use Eccube\Event\TemplateEvent;
-use Plugin\EcAuthLogin43\Service\AdminPasswordLoginPolicy;
+use Plugin\EcAuthLogin40\Service\AdminPasswordLoginPolicy;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class EcAuthLoginEvent implements EventSubscriberInterface
@@ -47,7 +47,7 @@ class EcAuthLoginEvent implements EventSubscriberInterface
         // addSnippet() ではなく setSource() でテンプレートソースに直接変更する。
         // login.twig は {% block javascript %} を定義していないので、追加する。
         $source = $event->getSource();
-        $source .= '{% block javascript %}{% include "@EcAuthLogin43/admin/login_passkey.twig" %}{% endblock %}';
+        $source .= '{% block javascript %}{% include "@EcAuthLogin40/admin/login_passkey.twig" %}{% endblock %}';
         $event->setSource($source);
     }
 }

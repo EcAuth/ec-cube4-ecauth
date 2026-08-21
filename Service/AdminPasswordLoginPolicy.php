@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
 /**
  * 管理画面のパスワード認証を無効化するかどうかを保持する。
@@ -61,10 +61,9 @@ class AdminPasswordLoginPolicy
      *   そもそもこの判定を通らないが、通った場合でも塞がない。無効化したいのは
      *   パスワード認証であって、ログインそのものではない。
      * - admin 以外のファイアウォール（EC-CUBE のフロント会員 = customer）は対象外。
-     *   Symfony は CheckPassportEvent のグローバルリスナーを全ファイアウォールの
-     *   ディスパッチャに複製する（RegisterGlobalSecurityEventListenersPass）ため、
-     *   会員ログインでも本判定が呼ばれる。ここで絞らないと EC サイトの会員が
-     *   ログインできなくなる。
+     *   本判定を呼ぶ Security\AdminPasswordLoginListener は kernel.request に入るため、
+     *   管理画面に限らずあらゆるリクエストで動く。ここで絞らないと EC サイトの
+     *   会員ログインまで巻き添えで塞ぎかねない。
      */
     public function shouldReject(bool $hasPasswordCredentials, bool $isAdminFirewall): bool
     {

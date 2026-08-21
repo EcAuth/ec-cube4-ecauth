@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit\Support;
+namespace Plugin\EcAuthLogin40\Tests\Unit\Support;
 
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
