@@ -13,6 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # 4.0 と 4.1 を **同時に走らせない**。
+      # このジョブは staging の EcAuth を実際に叩くため、並行させると同じ
+      # client_id / 管理者に対する register / authenticate が相互に state を
+      # 上書きし、「パスキー未登録の端末」を前提にした spec が別ジョブの登録済み
+      # 状態を拾って落ちる。spec 同士を直列化している playwright.config.ts の
+      # fullyParallel: false と同じ理由が、マトリクスではジョブ間に現れる。
+      max-parallel: 1
       matrix:
         # 4.0 系と 4.1 系は Symfony が 3.4 / 4.4 と異なるため、両方で回す。
         # プラグインのコードは 1 つなので、片方だけ通っても互換の担保にならない。
@@ -81,8 +88,19 @@ jobs:
         # ここで落ちれば「プラグインが入っていない」ことが明確になり、
         # 個々の spec の失敗として現れるより切り分けが早い。
         run: |
-          docker compose exec -T ec-cube bin/console doctrine:query:sql \
-            "select code, version, enabled from dtb_plugin where code = 'EcAuthLogin40'"
+          # doctrine:query:sql は該当 0 件でも終了コード 0 を返すため、
+          # 「プラグインが入っていない」ケースを取りこぼす。出力を検証する。
+          plugin_row=$(docker compose exec -T ec-cube bin/console doctrine:query:sql \
+            "select code, enabled from dtb_plugin where code = 'EcAuthLogin40'")
+          echo "$plugin_row"
+          if ! echo "$plugin_row" | grep -q 'EcAuthLogin40'; then
+            echo "::error::EcAuthLogin40 is not registered in dtb_plugin"
+            exit 1
+          fi
+          if ! echo "$plugin_row" | grep -q 'bool(true)'; then
+            echo "::error::EcAuthLogin40 is registered but not enabled"
+            exit 1
+          fi
           # dtb_plugin が有効でも、プラグインを有効化する前にコンパイルされた
           # コンテナが残っていると PluginPass に kernel.event_subscriber まで剥がされ、
           # 「DB 上は有効なのにイベントが発火しない」状態になる。
@@ -222,8 +240,13 @@ jobs:
       - name: Verify plugin is installed and enabled
         # 同上。プラグインが有効に見えてイベントが剥がれている状態を先に検出する。
         run: |
-          docker compose exec -T ec-cube bin/console doctrine:query:sql \
-            "select code, version, enabled from dtb_plugin where code = 'EcAuthLogin40'"
+          plugin_row=$(docker compose exec -T ec-cube bin/console doctrine:query:sql \
+            "select code, enabled from dtb_plugin where code = 'EcAuthLogin40'")
+          echo "$plugin_row"
+          if ! echo "$plugin_row" | grep -q 'bool(true)'; then
+            echo "::error::EcAuthLogin40 is not registered/enabled in dtb_plugin"
+            exit 1
+          fi
           if docker compose exec -T ec-cube bin/console debug:container \
                --parameter=eccube.plugins.disabled | grep -q 'EcAuthLogin40'; then
             echo "::error::EcAuthLogin40 is enabled in dtb_plugin but still listed in eccube.plugins.disabled (stale container cache)"
