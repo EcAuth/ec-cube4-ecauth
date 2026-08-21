@@ -245,6 +245,25 @@ dispatch される）、`EccubeNav`、`AbstractPluginManager`、`AbstractReposit
 `@admin/login.twig` は 4.0 と 4.1 で完全に同一で、`login_frame.twig` に
 `{% block javascript %}` があるため `setSource()` で差し込む手法もそのまま通る。
 
+### 配布物の取得元と checksum
+
+検証環境の Dockerfile が落としてくるもの（EC-CUBE 本体・composer.phar）は SHA-256 で検証する。
+
+- EC-CUBE 本体は **GitHub のリリースアセット**から取得する。
+  `downloads.ec-cube.net/src/eccube-<version>.tar.gz` にも同名のファイルがあるが、
+  **GitHub 側とはバイト列が異なり**（4.0.6-p5 で 35,891,624 / 35,922,621 バイト）、
+  公開されている checksum では検証できない。GitHub のリリースには
+  `eccube-<version>.tar.gz.checksum.sha256` が併載されている。
+  vendor 同梱・ディレクトリ構成が downloads 版と同じであることは確認済み
+- **ハッシュは Dockerfile に焼き込む**。配布元から checksum も取得して突き合わせる方式は、
+  配布元が汚染されたときに両方差し替えられて検証の意味が無くなる
+- composer.phar も同じ方針（`getcomposer.org/download/<version>/composer.phar.sha256sum`
+  の値を焼き込む）
+- **バージョンを増やすときはハッシュも追記する**。未登録のままビルドすると
+  「SHA-256 が登録されていません」で止まる。検証を黙って飛ばさないための作りなので、
+  面倒でも case 文を潰さないこと
+- 一時的に別バージョンを試すときは `--build-arg ECCUBE_SHA256=...` で渡せる
+
 ### Composer v1 のメタデータ提供終了（4.0 系）
 
 packagist.org は 2025-08-01 に Composer v1 向けメタデータの提供を終了した。EC-CUBE 4.0 系は

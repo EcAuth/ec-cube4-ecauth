@@ -80,6 +80,12 @@ RUN { \
 
 # 本家からの変更: composer は selfupdate ではなく phar を直接取得する。
 # あわせて packagist.jp へのミラー設定も落とした (サービス終了済み)。
+#
+# ダウンロードした phar は SHA-256 で検証する。ハッシュは
+# https://getcomposer.org/download/<version>/composer.phar.sha256sum で公開されている値を
+# **ここに焼き込んでいる**。配布元から checksum も取ってきて突き合わせるのでは、配布元が
+# 汚染された場合に両方差し替えられて検証にならないため。
+# composer のバージョンを変えるときはハッシュも更新すること。
 RUN set -eu; \
     version="${COMPOSER_VERSION}"; \
     if [ -z "${version}" ]; then \
@@ -88,17 +94,48 @@ RUN set -eu; \
         *)     version=2.2.25 ;; \
       esac; \
     fi; \
+    case "${version}" in \
+      1.10.27) sha256=230d28fb29f3c6c07ab2382390bef313e36de17868b2bd23b2e070554cae23d2 ;; \
+      2.2.25)  sha256=8b3f41253363f0645402d1951d6e7f02adedeef29c16de6074763e463e25c23f ;; \
+      *) echo "composer ${version} の SHA-256 が Dockerfile に登録されていません" >&2; exit 1 ;; \
+    esac; \
     echo "installing composer ${version} for EC-CUBE ${ECCUBE_VERSION}"; \
     curl -fsSL "https://getcomposer.org/download/${version}/composer.phar" -o /usr/local/bin/composer; \
+    echo "${sha256}  /usr/local/bin/composer" | sha256sum -c -; \
     chmod +x /usr/local/bin/composer; \
     composer --version
 
 # 本家からの変更: COPY . ではなく配布パッケージを展開する。
+#
+# 取得元は downloads.ec-cube.net ではなく GitHub のリリースアセット。
+# downloads.ec-cube.net にも同名の tar.gz があるが、GitHub 側とはバイト列が異なり
+# (4.0.6-p5 で 35,891,624 / 35,922,621 バイト)、公開されている checksum で検証できない。
+# GitHub のリリースには eccube-<version>.tar.gz.checksum.sha256 が併載されている。
+# vendor 同梱・ディレクトリ構成は downloads 版と同じであることを確認済み。
+#
+# ハッシュは上記 checksum ファイルの値を **ここに焼き込んでいる**。配布元から
+# checksum も取得して突き合わせる方式では、配布元が汚染された場合に両方差し替えられて
+# 検証にならないため。バージョンを増やすときはハッシュも追記すること
+# (未登録のままだとビルドを止める。検証を黙って飛ばさない)。
+ARG ECCUBE_SHA256=
 WORKDIR ${APACHE_DOCUMENT_ROOT}
-RUN curl -fsSL "https://downloads.ec-cube.net/src/eccube-${ECCUBE_VERSION}.tar.gz" \
-    | tar xz --strip-components=1 -C "${APACHE_DOCUMENT_ROOT}" \
-  && test -f "${APACHE_DOCUMENT_ROOT}/composer.json" \
-  ;
+RUN set -eu; \
+    sha256="${ECCUBE_SHA256}"; \
+    if [ -z "${sha256}" ]; then \
+      case "${ECCUBE_VERSION}" in \
+        4.0.6-p5) sha256=e92ea76b60057565f2b0f22cc62fe488e549bad9298d0e143ba99906cf8fa580 ;; \
+        4.1.2-p5) sha256=11ec54ef84a5ac4254249285737e5b8899f5161a10530d1b290c0baec7312ce8 ;; \
+        *) echo "EC-CUBE ${ECCUBE_VERSION} の SHA-256 が Dockerfile に登録されていません。" >&2; \
+           echo "Dockerfile に追記するか、--build-arg ECCUBE_SHA256=... で渡してください。" >&2; \
+           exit 1 ;; \
+      esac; \
+    fi; \
+    curl -fsSL "https://github.com/EC-CUBE/ec-cube/releases/download/${ECCUBE_VERSION}/eccube-${ECCUBE_VERSION}.tar.gz" \
+      -o /tmp/eccube.tar.gz; \
+    echo "${sha256}  /tmp/eccube.tar.gz" | sha256sum -c -; \
+    tar xz --strip-components=1 -C "${APACHE_DOCUMENT_ROOT}" -f /tmp/eccube.tar.gz; \
+    rm -f /tmp/eccube.tar.gz; \
+    test -f "${APACHE_DOCUMENT_ROOT}/composer.json"
 
 # Composer v1 のメタデータ提供終了 (2025-08-01) への対応。4.0 系のみ必要。
 # https://doc4.ec-cube.net/plugin_eccube40
