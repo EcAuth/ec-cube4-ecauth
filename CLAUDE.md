@@ -350,15 +350,22 @@ bin/console debug:container --parameter=eccube.plugins.disabled
 
 CI の E2E ジョブにも同じ確認ステップを置いてある。
 
-### `extra.id` を 0 にしてある理由
+### `extra.id` はオーナーズストアの product_id
 
-`composer.json` の `extra.id` はオーナーズストアのプラグイン ID。43 版は 3557 を持つが、
-40 版は別パッケージとして申請するため未採番で、暫定的に 0 を入れている。
-**オーナーズストアで採番されたら差し替えること。**
+`composer.json` の `extra.id` はオーナーズストアのプラグイン ID。40 版は **3581**
+（43 版は 3557）。別パッケージとして申請しているため 43 版とは別の ID を持つ。
 
-0 にしておくと実装上も都合がよい。`PluginService::readConfig()` は `extra.id` を `source` として
-返し、`installWithCode()` は `source` が真のときだけ `getPluginRequired()` → composer による
-依存解決に入る。0 なら composer をまったく経由しない。
+この値は `PluginService::readConfig()` が `source` として返す。`installWithCode()`
+（`eccube:plugin:install --code=` と、管理画面のオーナーズストア経由のインストール）は
+`source` が真のときだけ `getPluginRequired()` → `ComposerService::foreachRequires()` に入り、
+composer のリポジトリメタデータを引きに行く。4.0 系は Composer v1 のメタデータ提供が
+終了しているためこの経路は安定しない（package-api 経由の検証を自動化していない理由でもある。
+上記「オーナーズストア（package-api）経由の検証は自動化していない」参照）。
+
+**検証と CI が使う `eccube:plugin:install --path=` はこの影響を受けない。**
+`install($path, $source = 0)` は `$source` を引数で受け取り、composer.json の `extra.id` を
+参照しない。したがって `extra.id` が 0 でも 3581 でも composer を経由しない。
+`docker-entrypoint.sh` と E2E がこの経路を使っているのはそのため。
 
 ## コーディング規約
 
