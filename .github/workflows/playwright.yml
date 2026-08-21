@@ -83,6 +83,16 @@ jobs:
         run: |
           docker compose exec -T ec-cube bin/console doctrine:query:sql \
             "select code, version, enabled from dtb_plugin where code = 'EcAuthLogin40'"
+          # dtb_plugin が有効でも、プラグインを有効化する前にコンパイルされた
+          # コンテナが残っていると PluginPass に kernel.event_subscriber まで剥がされ、
+          # 「DB 上は有効なのにイベントが発火しない」状態になる。
+          # 症状が「ログイン画面にパスキーのボタンが出ない」という形でしか出ず
+          # 切り分けが難しいので、パラメータ側を直接確認する。
+          if docker compose exec -T ec-cube bin/console debug:container \
+               --parameter=eccube.plugins.disabled | grep -q 'EcAuthLogin40'; then
+            echo "::error::EcAuthLogin40 is enabled in dtb_plugin but still listed in eccube.plugins.disabled (stale container cache)"
+            exit 1
+          fi
 
       - name: Warm up staging EcAuth
         # staging の App Service は Free tier のため alwaysOn を有効化できず、
@@ -206,6 +216,17 @@ jobs:
           done
           if [ "$ready" != "true" ]; then
             echo "EC-CUBE did not become ready in time" >&2
+            exit 1
+          fi
+
+      - name: Verify plugin is installed and enabled
+        # 同上。プラグインが有効に見えてイベントが剥がれている状態を先に検出する。
+        run: |
+          docker compose exec -T ec-cube bin/console doctrine:query:sql \
+            "select code, version, enabled from dtb_plugin where code = 'EcAuthLogin40'"
+          if docker compose exec -T ec-cube bin/console debug:container \
+               --parameter=eccube.plugins.disabled | grep -q 'EcAuthLogin40'; then
+            echo "::error::EcAuthLogin40 is enabled in dtb_plugin but still listed in eccube.plugins.disabled (stale container cache)"
             exit 1
           fi
 

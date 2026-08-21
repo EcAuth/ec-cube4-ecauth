@@ -263,6 +263,74 @@ update が composer を経由すると依存解決に失敗しうる。
   plugin-installer を vcs 参照）を `docker/fix-composer-v1.php` で適用している。
   CLI 経路では本来不要だが、管理画面からのインストールを手で試したときに素の状態だと詰まるため
 
+### プラグインが「有効なのに動かない」状態（偶発的に起きる）
+
+`EccubeExtension::prepend()` は `dtb_plugin` を読んで「無効なプラグイン」の一覧を
+`eccube.plugins.disabled` に入れ、`PluginPass` がその名前空間のサービスから
+`doctrine.repository_service` 以外の **全タグを剥がす**。
+
+問題は `prepend()` が **DB に接続できなかったときに `app/Plugin` のディレクトリ一覧を
+そのまま無効扱いにして早期 return する** こと。
+
+```php
+$pluginDirs = $this->getPluginDirectories($pluginDir);
+$container->setParameter('eccube.plugins.disabled', $pluginDirs);  // ← 初期値
+// ...
+if (!$this->isConnected($conn)) {
+    return;   // ← ここを通ると app/Plugin 配下が全部「無効」のまま確定する
+}
+```
+
+この状態でコンパイルされたコンテナが残ると
+
+- `dtb_plugin.enabled` は `t`
+- なのに `kernel.event_subscriber` が剥がれていて `TemplateEvent` が発火しない
+- 表に出る症状は「ログイン画面にパスキーのボタンが出ない」だけ
+
+という、極めて切り分けにくい状態になる。
+
+**偶発的にしか起きない。** 同じ手順で起動し直すと再現しないことがある（実際、CI の
+4.1 系 E2E で踏んだあと、同じイメージで起動し直したら `ping: true` で正常にコンパイル
+された）。したがって **一度通ったから大丈夫、とは言えない**。原因はバージョンに依存
+しないので 4 系のどれでも起こりうる。「4.0 では起きない」と考えないこと。
+
+4.1 系で先に顕在化したのは、`PluginPass` が
+
+```php
+$plugins = $container->getParameter('eccube.plugins.disabled');
+if (empty($plugins)) { return; }
+```
+
+と早期 return する一方、4.1 の fixtures が `Recommend4` / `Coupon4` など 10 個を
+無効状態で `dtb_plugin` に登録するため、一覧が空にならずタグ剥がしまで到達しやすいから。
+
+#### 対処
+
+`docker-entrypoint.sh` は Apache を起動する前に
+
+1. `cache:clear --no-warmup` → `cache:warmup --no-optional-warmers`（CLI 側で作り切る。
+   clear だけだと最初のコンパイルが Apache = www-data 側で走り、CLI とは環境変数も
+   パーミッションも違う状態になる。4.2/4.3 版の entrypoint も両者をペアで呼んでいる）
+2. **コンパイル結果を検証**し、プラグインが `eccube.plugins.disabled` に残っていたら
+   作り直す（最大 3 回）
+3. それでも直らなければ **起動を止める**
+
+をやっている。偶発的な事象なので「作って終わり」にせず検証まで含めるのが要点。
+静かに壊れたまま起動させると、E2E が個々の spec の失敗として散らばり原因に辿り着けない。
+
+確認コマンド:
+
+```bash
+# DB 上は有効か
+bin/console doctrine:query:sql "select code, enabled from dtb_plugin where code = 'EcAuthLogin40'"
+
+# コンテナ側でも有効とみなされているか
+# (ここに EcAuthLogin40 が出てきたら、上記の「有効なのに剥がれている」状態)
+bin/console debug:container --parameter=eccube.plugins.disabled
+```
+
+CI の E2E ジョブにも同じ確認ステップを置いてある。
+
 ### `extra.id` を 0 にしてある理由
 
 `composer.json` の `extra.id` はオーナーズストアのプラグイン ID。43 版は 3557 を持つが、

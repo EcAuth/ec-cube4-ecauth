@@ -104,8 +104,6 @@ if [ -f "${PLUGIN_DIR}/composer.json" ]; then
     # composer.json / Entity を変更したときは docker compose down -v で作り直すこと。
     make_plugin_archive
     tar xzf "${PLUGIN_ARCHIVE}" -C "${PLUGIN_DIR}"
-    chown -R www-data: "${PLUGIN_DIR}"
-    bin/console cache:clear --no-warmup
 else
     echo "Installing ${PLUGIN_CODE} from ${PLUGIN_SRC} (local source)..."
     make_plugin_archive
@@ -123,14 +121,61 @@ else
         echo "(インストール済みの状態が残っていると、この処理自体が次回スキップされる)。" >&2
         exit 1
     }
-    bin/console cache:clear --no-warmup
-    chown -R www-data: "${PLUGIN_DIR}" "${APACHE_DOCUMENT_ROOT}/var"
     echo "${PLUGIN_CODE} plugin installed and enabled."
 fi
 
 echo "--- installed plugin ---"
 bin/console doctrine:query:sql \
     "select code, version, enabled from dtb_plugin where code = '${PLUGIN_CODE}'" || true
+
+# Apache を起動する前に、CLI 側でコンテナを作り切り、結果を検証してから www-data へ渡す。
+#
+# EccubeExtension::prepend() は dtb_plugin を読んで「無効なプラグイン」の一覧を
+# eccube.plugins.disabled に入れ、PluginPass がその名前空間のサービスから
+# doctrine.repository_service 以外の全タグを剥がす。ここで問題になるのは
+# prepend() が **DB に接続できなかったときに app/Plugin のディレクトリ一覧を
+# そのまま無効扱いにして早期 return する** こと。その状態でコンパイルされた
+# コンテナが残ると
+#
+#   - dtb_plugin.enabled は t
+#   - なのに kernel.event_subscriber が剥がれていて TemplateEvent が発火しない
+#   - 表に出る症状は「ログイン画面にパスキーのボタンが出ない」だけ
+#
+# という極めて分かりにくい状態になる。しかも **偶発的にしか起きない**
+# (同じ手順で起動し直すと再現しないことがある)。4.1 系の CI で先に踏んだが、
+# 条件はバージョンに依存しないので 4 系のどれでも起こりうる。
+#
+# そのため「作って終わり」にせず、コンパイル結果を確認してリトライする。
+# clear だけで済ませないこと。clear しただけだと最初のコンパイルが Apache
+# (www-data) 側で走り、CLI とは環境変数もパーミッションも違う状態になる。
+warm_container() {
+    bin/console cache:clear --no-warmup
+    bin/console cache:warmup --no-optional-warmers
+}
+
+# コンパイル済みコンテナがプラグインを有効と見なしているか。
+container_sees_plugin_enabled() {
+    ! bin/console debug:container --parameter=eccube.plugins.disabled 2>/dev/null \
+        | grep -q "${PLUGIN_CODE}"
+}
+
+for attempt in 1 2 3; do
+    warm_container
+    if container_sees_plugin_enabled; then
+        break
+    fi
+    echo "warning: ${PLUGIN_CODE} は dtb_plugin では有効だが、コンパイル済みコンテナでは" >&2
+    echo "         無効扱いになっている (attempt ${attempt}/3)。キャッシュを作り直す。" >&2
+done
+
+if ! container_sees_plugin_enabled; then
+    echo "error: ${PLUGIN_CODE} が eccube.plugins.disabled に残ったままです。" >&2
+    echo "       この状態では PluginPass にイベント購読を剥がされ、設定画面もパスキーも動きません。" >&2
+    echo "       静かに壊れたまま起動させないため、ここで停止します。" >&2
+    exit 1
+fi
+
+chown -R www-data: "${PLUGIN_DIR}" "${APACHE_DOCUMENT_ROOT}/var"
 
 # Apache 起動
 exec "$@"
