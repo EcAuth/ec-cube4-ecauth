@@ -196,10 +196,29 @@ class AdminPasswordLoginListener implements EventSubscriberInterface
         return new RedirectResponse($this->urlGenerator->generate(self::LOGIN_CHECK_ROUTE));
     }
 
+    /**
+     * ログに残す試行 ID を取り出す。
+     *
+     * **必ず長さを切り詰めること。** 本リスナーはファイアウォールの手前で拒否するため、
+     * Symfony が `UsernamePasswordFormAuthenticationListener` で課している
+     * `Security::MAX_USERNAME_LENGTH` の検査をまだ通っていない。切り詰めないと、
+     * 未認証の POST に載ってきた文字列（`post_max_size` の上限まで）がそのまま
+     * ログに書かれ、繰り返されるとログとディスクが膨らむ。CSRF 検証も
+     * ログイン試行回数の制限（4.0/4.1 には login_throttling 自体が無い）も
+     * この時点では効かないので、抑止するものが他に無い。
+     *
+     * 4.2/4.3 版は `UserBadge::getUserIdentifier()` から取っており、値を受け取る
+     * 時点で Symfony 側が同じ上限で弾いているため、この手当ては要らなかった。
+     * `kernel.request` で塞ぐ方式に変えたぶん、ここは自前で守る必要がある。
+     */
     private function extractUserIdentifier(Request $request): ?string
     {
         $value = $request->request->get(self::USERNAME_PARAMETER);
 
-        return is_string($value) ? $value : null;
+        if (!is_string($value)) {
+            return null;
+        }
+
+        return substr($value, 0, Security::MAX_USERNAME_LENGTH);
     }
 }
