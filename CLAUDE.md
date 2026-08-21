@@ -318,6 +318,12 @@ Composer v1 のメタデータ提供が終了しているため、`ec-cube/plugi
   `GuzzleHttp\Psr7\stream_for` は 2.x で削除されているため、どちらにも依存できない
 - ユニットテストは `Tests/Unit/Support/TestPsr17Factory` が nyholm/psr7 を包んでこの抽象に
   合わせる。テストのために Guzzle を持ち出す必要は無い
+- **`guzzlehttp/guzzle` は require-dev にも入れない**。Guzzle 6 系は全バージョンに
+  セキュリティアドバイザリが出ており、composer の `policy.advisories.block`（既定で有効）が
+  `composer install` 自体を失敗させる。静的解析で `GuzzleHttp\ClientInterface` の型を
+  解決したくなるが、そのために 6 系を require-dev へ足すことはできない
+  （実際に CI がこれで落ちた。`policy.advisories.ignore` を配布物の composer.json に
+  書いて回避するのも、利用者側に脆弱性の無視を配ることになるので採らない）
 - **`composer.json` の require は `ec-cube/plugin-installer` だけに保つこと**
 
 ## 環境変数の取り扱い
