@@ -1,8 +1,8 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit\Support;
+namespace Plugin\EcAuthLogin40\Tests\Unit\Support;
 
-use Plugin\EcAuthLogin43\Service\JwksProviderInterface;
+use Plugin\EcAuthLogin40\Service\JwksProviderInterface;
 
 /**
  * JWKS 取得を差し替えるテストダブル。

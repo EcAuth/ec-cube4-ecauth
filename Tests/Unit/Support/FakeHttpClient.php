@@ -1,17 +1,17 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit\Support;
+namespace Plugin\EcAuthLogin40\Tests\Unit\Support;
 
 use Nyholm\Psr7\Response;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientExceptionInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * 応答をキューで返す PSR-18 クライアントのテストダブル。
+ * 応答をキューで返す HttpClientInterface のテストダブル。
  */
-class FakeHttpClient implements ClientInterface
+class FakeHttpClient implements HttpClientInterface
 {
     /**
      * @var array<int, array{status: int, body: string}|\Throwable>
@@ -42,7 +42,7 @@ class FakeHttpClient implements ClientInterface
             throw new \RuntimeException('FakeHttpClient received an unexpected request');
         }
         if ($next instanceof \Throwable) {
-            /* @var ClientExceptionInterface&\Throwable $next */
+            /* @var HttpClientExceptionInterface&\Throwable $next */
             throw $next;
         }
 

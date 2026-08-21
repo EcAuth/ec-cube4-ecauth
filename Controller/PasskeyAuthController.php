@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Controller;
+namespace Plugin\EcAuthLogin40\Controller;
 
 use Eccube\Controller\AbstractController;
-use Plugin\EcAuthLogin43\Service\EcAuthApiClient;
-use Plugin\EcAuthLogin43\Service\PasskeyAuthService;
+use Plugin\EcAuthLogin40\Service\EcAuthApiClient;
+use Plugin\EcAuthLogin40\Service\PasskeyAuthService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -106,7 +106,7 @@ class PasskeyAuthController extends AbstractController
             $redirectUri,
             $state,
             $data['response'],
-            $this->passkeyAuthService->generateCodeChallenge($codeVerifier),
+            $this->passkeyAuthService->generateCodeChallenge($codeVerifier)
         );
 
         if ($result['status'] !== 200) {

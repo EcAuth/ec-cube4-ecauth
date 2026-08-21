@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit\Support;
+namespace Plugin\EcAuthLogin40\Tests\Unit\Support;
 
 /**
  * テスト用の RSA 鍵ペアを生成し、JWK と署名済み JWT を組み立てるヘルパー。

@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\EcAuthLogin43;
+namespace Plugin\EcAuthLogin40;
 
 use Eccube\Plugin\AbstractPluginManager;
-use Plugin\EcAuthLogin43\Entity\Config;
-use Psr\Container\ContainerInterface;
+use Plugin\EcAuthLogin40\Entity\Config;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class PluginManager extends AbstractPluginManager
 {

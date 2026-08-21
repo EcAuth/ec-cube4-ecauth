@@ -4,15 +4,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // 文言は JS 文字列に埋めるため e('js') でエスケープする。
     // Twig の自動エスケープは HTML 向けで、引用符が実体参照になるだけなので
     // JS リテラル内では正しく閉じられない値を作りうる。
-    var BUTTON_LABEL = '{{ "ecauth_login43.admin.login.passkey_button"|trans|e('js') }}';
-    var ERROR_MESSAGE = '{{ "ecauth_login43.admin.login.passkey.error"|trans|e('js') }}';
-    var NOT_FOUND_MESSAGE = '{{ "ecauth_login43.admin.login.passkey.not_found"|trans|e('js') }}';
+    var BUTTON_LABEL = '{{ "ecauth_login40.admin.login.passkey_button"|trans|e('js') }}';
+    var ERROR_MESSAGE = '{{ "ecauth_login40.admin.login.passkey.error"|trans|e('js') }}';
+    var NOT_FOUND_MESSAGE = '{{ "ecauth_login40.admin.login.passkey.not_found"|trans|e('js') }}';
     // 初回利用者向けの常設案内。ログイン画面は EC-CUBE 本体のテンプレートなので、
     // 案内文の要素を差し込むと本体の変更に追従しづらい。ボタンの title
     // （ツールチップ）なら本体の DOM 構造に手を入れずに常時見せられる。
-    var HINT_MESSAGE = '{{ "ecauth_login43.admin.login.passkey.hint"|trans|e('js') }}';
-    var PASSWORD_DISABLED_MESSAGE = '{{ "ecauth_login43.admin.login.password_disabled.notice"|trans|e('js') }}';
-    var PASSWORD_DISABLED_UNAVAILABLE_MESSAGE = '{{ "ecauth_login43.admin.login.password_disabled.notice_unavailable"|trans|e('js') }}';
+    var HINT_MESSAGE = '{{ "ecauth_login40.admin.login.passkey.hint"|trans|e('js') }}';
+    var PASSWORD_DISABLED_MESSAGE = '{{ "ecauth_login40.admin.login.password_disabled.notice"|trans|e('js') }}';
+    var PASSWORD_DISABLED_UNAVAILABLE_MESSAGE = '{{ "ecauth_login40.admin.login.password_disabled.notice_unavailable"|trans|e('js') }}';
 
     // 環境変数 ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN の状態（EcAuthLoginEvent が渡す）。
     // ここで行うのは入力欄を隠す案内だけで、実際に認証を拒否するのはサーバー側の

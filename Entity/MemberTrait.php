@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Entity;
+namespace Plugin\EcAuthLogin40\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Eccube\Annotation\EntityExtension;

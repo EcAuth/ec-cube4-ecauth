@@ -1,8 +1,8 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Form\Type\Admin;
+namespace Plugin\EcAuthLogin40\Form\Type\Admin;
 
-use Plugin\EcAuthLogin43\Entity\Config;
+use Plugin\EcAuthLogin40\Entity\Config;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;

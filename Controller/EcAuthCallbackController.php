@@ -1,9 +1,9 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Controller;
+namespace Plugin\EcAuthLogin40\Controller;
 
 use Eccube\Controller\AbstractController;
-use Plugin\EcAuthLogin43\Service\PasskeyAuthService;
+use Plugin\EcAuthLogin40\Service\PasskeyAuthService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -30,7 +30,7 @@ class EcAuthCallbackController extends AbstractController
         // エラーレスポンスの場合
         $error = $request->query->get('error');
         if ($error !== null) {
-            $this->addError('ecauth_login43.admin.callback.error', 'admin');
+            $this->addError('ecauth_login40.admin.callback.error', 'admin');
             log_warning('EcAuth callback error', [
                 'error' => $error,
                 'error_description' => $request->query->get('error_description'),
@@ -43,7 +43,7 @@ class EcAuthCallbackController extends AbstractController
         $state = $request->query->get('state');
 
         if ($code === null || $state === null) {
-            $this->addError('ecauth_login43.admin.callback.error', 'admin');
+            $this->addError('ecauth_login40.admin.callback.error', 'admin');
 
             return $this->redirectToRoute('admin_login');
         }
@@ -54,7 +54,7 @@ class EcAuthCallbackController extends AbstractController
         $Member = $this->passkeyAuthService->handleCallback($code, $state, $session, $redirectUri);
 
         if ($Member === null) {
-            $this->addError('ecauth_login43.admin.callback.user_not_found', 'admin');
+            $this->addError('ecauth_login40.admin.callback.user_not_found', 'admin');
 
             return $this->redirectToRoute('admin_login');
         }

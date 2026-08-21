@@ -1,9 +1,9 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit;
+namespace Plugin\EcAuthLogin40\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Plugin\EcAuthLogin43\Service\AdminPasswordLoginPolicy;
+use Plugin\EcAuthLogin40\Service\AdminPasswordLoginPolicy;
 
 /**
  * 管理画面のパスワード認証を無効化する判定。

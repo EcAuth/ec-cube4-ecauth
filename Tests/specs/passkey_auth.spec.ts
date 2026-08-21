@@ -9,7 +9,7 @@ const CLIENT_ID = process.env.CLIENT_ID || '';
 const CLIENT_SECRET = process.env.CLIENT_SECRET || '';
 const RP_ID = process.env.RP_ID || 'localhost';
 
-const ADVANCED_TOGGLE = 'button[data-bs-toggle="collapse"][data-bs-target="#ecauth-advanced-settings"]';
+const ADVANCED_TOGGLE = 'button[data-toggle="collapse"][data-target="#ecauth-advanced-settings"]';
 
 test.describe('パスキーログインフロー', () => {
   test('ログイン画面にパスキーボタンが表示される（HTTPS時）', async ({ page }) => {
@@ -279,7 +279,7 @@ test.describe.serial('E2E: パスキー登録からログイン完了までの�
       page.click('button[type="submit"]'),
     ]);
 
-    await page.goto(`${ADMIN_URL}/ecauth_login43/config`);
+    await page.goto(`${ADMIN_URL}/ecauth_login40/config`);
     await page.fill('input[name="config[client_id]"]', CLIENT_ID);
     await page.fill('input[name="config[client_secret]"]', CLIENT_SECRET);
 

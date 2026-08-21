@@ -1,14 +1,14 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Entity;
+namespace Plugin\EcAuthLogin40\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Config
  *
- * @ORM\Table(name="plg_ecauth_login43_config")
- * @ORM\Entity(repositoryClass="Plugin\EcAuthLogin43\Repository\ConfigRepository")
+ * @ORM\Table(name="plg_ecauth_login40_config")
+ * @ORM\Entity(repositoryClass="Plugin\EcAuthLogin40\Repository\ConfigRepository")
  */
 class Config
 {

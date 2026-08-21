@@ -1,9 +1,9 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit;
+namespace Plugin\EcAuthLogin40\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Plugin\EcAuthLogin43\Service\BaseUrlValidator;
+use Plugin\EcAuthLogin40\Service\BaseUrlValidator;
 
 /**
  * EcAuthDocs #101: Base URL はトークン交換先かつ JWKS 取得先になるため、

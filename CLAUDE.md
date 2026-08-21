@@ -4,100 +4,129 @@
 
 ## プロジェクト概要
 
-EC-CUBE 4.2/4.3系管理画面向け EcAuth B2Bパスキー認証プラグイン（EcAuthLogin43）。
+EC-CUBE 4.0/4.1系管理画面向け EcAuth B2Bパスキー認証プラグイン（EcAuthLogin40）。
 EcAuth Identity Provider と連携し、管理画面にパスキー（WebAuthn/FIDO2）認証を追加する。
+
+**このブランチ (`4.0`) は 4.0/4.1 系専用**。4.2/4.3 系は `main` ブランチの EcAuthLogin43
+（`ec-cube/ecauthlogin43`）で、機能は同じだがコードベースは別物として扱う。
+両者の差分は「EC-CUBE 4.0/4.1 固有の制約」を参照。
 
 ## 注意事項
 
 プラグインインストール後に docker 側で何らかの修正をしたり、 EC-CUBEコア側にパッチをあてるのは本来の EC-CUBE プラグインの開発要件から大きく逸脱するので絶対にしないでください。
 EC-CUBEプラグインは、EC-CUBE管理画面の Webインストーラーからインストール可能なことが絶対条件です。
-現在は開発用途で composer ローカルリポジトリを使用しています
+
+開発時はワーキングツリーから tar.gz を作り、`eccube:plugin:install --path=` で導入している
+（4.2/4.3 版のような composer のローカルリポジトリ経由は 4.0/4.1 では使えない。詳細は
+「プラグインのインストール方法」）。これは管理画面からアップロードしたときと同じ
+`PluginService::install()` を通るため、Web インストーラーで入る形のまま検証できている。
+
+`docker/fix-composer-v1.php` だけは EC-CUBE 本体の `composer.json` を書き換えるが、これは
+**検証環境のイメージをビルドするときにだけ実行される**もので、プラグインの配布物にも
+実行時の動作にも含まれない。内容も EC-CUBE 公式が 4.0 系の利用者に案内している手順
+（[Composer v1 利用時の注意点](https://doc4.ec-cube.net/plugin_eccube40)）そのもの。
 
 ## 開発コマンド
 
 ### Docker 環境
 
+4.0/4.1 系には公式イメージが無い（`ghcr.io/ec-cube/ec-cube-php` は 4.2 系が最古で、
+EC-CUBE 本体 4.0 ブランチの docker-compose.yml が参照する `7.4-apache-4.0` タグは
+publish されていない = 404）。そのため `Dockerfile` が EC-CUBE 本体ごとビルドする。
+本体のソースは downloads.ec-cube.net の配布パッケージ（vendor 同梱）を展開している。
+
 ```bash
-# 起動
+# EC-CUBE 4.0.6-p5 で起動（既定）
 docker compose up -d --build
+
+# EC-CUBE 4.1.2-p5 で起動
+ECCUBE_VERSION=4.1.2-p5 docker compose up -d --build
 
 # ログ確認
 docker compose logs ec-cube
 
-# 停止
-docker compose down
+# 停止（DB volume ごと消す）
+docker compose down -v
 ```
 
-### プラグインのインストール元（ローカルソース / package-api）
+composer のメジャーバージョン（4.0 は v1 / 4.1 は v2）は `ECCUBE_VERSION` から
+Dockerfile が決める。手で指定させると「4.1 に切り替えたのに composer が v1 のまま」を踏む。
 
-`docker-entrypoint.sh` は `ECCUBE_AUTHENTICATION_KEY` の有無でインストール元を切り替える。
+### プラグインのインストール方法
 
-| `ECCUBE_AUTHENTICATION_KEY` | インストール元 | コマンド | 用途 |
-|---|---|---|---|
-| 未設定（既定） | `/plugin`（ワーキングツリー） | `eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin` | 日常の開発・PR CI |
-| 設定済 | オーナーズストアの package-api | `eccube:composer:require ec-cube/ecauthlogin43 [version]` | 申請中パッケージの検証 |
-
-`eccube:composer:require` は `--from` を付けると path リポジトリを追加し、**そのパッケージを
-package-api リポジトリから exclude する**（`ComposerApiService::init()`）。したがって両立せず、
-どちらか一方になる。
+4.0/4.1 には `eccube:composer:require` の `--from` オプションが無い（4.2 で追加された）。
+そのため 4.2/4.3 版のように composer の path リポジトリ経由では入れられない。
+`docker-entrypoint.sh` はワーキングツリーから tar.gz を作り、
+`eccube:plugin:install --path=` に渡す。これはオーナーズストアからアップロードしたときと
+同じ `PluginService::install` を通るので、配布経路としてはむしろ実際に近い。
 
 ```bash
-# 既定（ローカルソース）
-op run --env-file=.env.tpl -- docker compose up -d --build
-
-# 検証キーで package-api から「申請中のパッケージ」を入れる
-op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
-
-# バージョンを固定する場合（非秘密なのでインラインで渡す）
-# 値は検証したいバージョンに読み替える。省略すると最新が入る
-ECAUTH_PLUGIN_VERSION=1.1.0 \
-  op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+# entrypoint が中でやっていること
+bin/console eccube:plugin:install --path=/tmp/EcAuthLogin40.tar.gz
+bin/console eccube:plugin:enable --code=EcAuthLogin40
 ```
 
-検証キー（`X-ECCUBE-KEY`）はオーナーズストアにリリース申請すると発行される。
-`ComposerApiService` は package-api へのリクエストに
-`X-ECCUBE-KEY: {dtb_base_info.authentication_key}` を付けるため、entrypoint は
-composer require の前にこの値を DB へ書き込む。管理画面「オーナーズストア > 認証キー設定」で
-人が入力するのと同じ場所であり、EC-CUBE コアへのパッチではない。
+開発中にソースを直したら `docker compose restart ec-cube` で反映される
+（entrypoint が `/plugin` から `app/Plugin/EcAuthLogin40` へ tar 経由で同期する）。
+**上書きのみでファイルの削除は反映されない**。消したファイル、`composer.json`、Entity の
+変更を反映するときは `docker compose down -v` で作り直すこと。
 
-**キーの扱い**: 値はコマンド引数に載せず、標準入力で渡した PHP スクリプトが `$_SERVER` から
-読む。`ps` や docker のコマンドラインに現れないようにするため。ログにも出力しない。
-（環境変数の参照に `getenv()` を使わないのは、スレッドセーフでなく Symfony でも非推奨のため。
-`$_ENV` は `variables_order` に `E` が無いと空になるが、`$_SERVER` は `EGPCS` / `GPCS` の
-どちらでも CLI SAPI が populate する。）
+#### tar に `./` を含めてはいけない
 
-CI では `workflow_dispatch` の `install_source` を `package-api` にしたときだけ
-1Password から読み込む（fork の PR には secrets が無いため、既定はローカルソース）。
+`PluginService::unpackPluginArchive` は tar を `PharData` で展開する。tar に `./`
+エントリ（カレントディレクトリ自身）が含まれていると
+
+```
+PharException: Extraction from phar "..." failed: Cannot extract ".", internal error
+```
+
+で必ず失敗する。`tar -C dir .` はこのエントリを作るため使えない。`docker-entrypoint.sh`
+も `.github/workflows/deploy.yml` も glob（`*` / `./*`）でエントリを列挙している。
+配布物のパッケージングを書き換えるときはここを壊さないこと。
+
+#### オーナーズストア（package-api）経由の検証は自動化していない
+
+4.2/4.3 版には `ECCUBE_AUTHENTICATION_KEY` を設定すると package-api から
+「申請中のパッケージ」を入れる経路があるが、40 版では用意していない。4.0 系は
+Composer v1 のメタデータ提供が終了しており、`eccube:composer:require` 経由の
+インストールがそもそも安定しないため（EC-CUBE 公式もコマンドラインでの操作を推奨）。
+検証が必要なときは管理画面から手で tar.gz をアップロードする。
 
 ### 静的解析
 
+CI と同じコマンドで実行する。
+
 ```bash
-# PHPStan
-composer phpstan
+# PHPStan（解析対象を PHP 7.1 として見る設定にしてある）
+vendor/bin/phpstan analyse --no-progress
 
 # Rector (dry-run)
-composer rector
+vendor/bin/rector process --dry-run --config Tests/rector.php
 
 # PHP CS Fixer (dry-run)
-composer cs-check
+vendor/bin/php-cs-fixer fix --dry-run --diff --config Tests/.php-cs-fixer.dist.php
+
+# PHPUnit（EC-CUBE のカーネルを起動しない純粋なユニットテストのみ）
+vendor/bin/phpunit --configuration phpunit.xml.dist
 ```
 
-**重要**: 静的解析のために `composer install` を実行すると、リポジトリ直下に `vendor/` が生成される。
-`docker-compose.override.yml` はリポジトリ直下を `/plugin` にマウントし、`docker-entrypoint.sh` の
-`eccube:composer:require ec-cube/ecauthlogin43 --from=/plugin` がその `vendor/` ごとプラグインを取り込むため、
-EC-CUBE 本体のオートローダーと衝突して起動に失敗する。
+`composer install` で生成される `vendor/` は Docker 環境に影響しない。
+`docker-entrypoint.sh` が tar を作るときに除外しているためで、4.2/4.3 版にあった
+「Docker で動かす前に vendor を消す」「composer.json が minify された 1 行 JSON に
+書き戻される」といった問題は 40 版では起きない（composer をまったく経由しないため）。
 
+ユニットテストを PHP 7.4 で回したいときは、ビルド済みの検証用イメージを流用できる。
+
+```bash
+docker run --rm --entrypoint bash -v "$PWD:/app" -w /app eccube40-ec-cube:latest -c '
+  curl -fsSL https://getcomposer.org/download/2.8.12/composer.phar -o /tmp/composer && chmod +x /tmp/composer
+  /tmp/composer install --no-interaction --no-progress
+  vendor/bin/phpunit --configuration phpunit.xml.dist
+'
 ```
-PHP Fatal error: Cannot declare class Composer\Autoload\ClassLoader, because the name is already in use
-                 in /plugin/vendor/composer/ClassLoader.php
-```
 
-**Docker で動かす前に `rm -rf vendor` すること**（`vendor/` は `.gitignore` 済みで、生成物以外は失われない）。
-CI では静的解析ジョブと E2E ジョブが別コンテナのため、この衝突は起きない。
-
-同じ理由（リポジトリ直下がコンテナにマウントされている）で、`docker compose up` すると
-プラグインインストーラが **`composer.json` を minify した 1 行 JSON に書き戻す**。追跡ファイルなので
-`git status` に差分として現れる。コミットに混入させないよう `git checkout -- composer.json` で戻すこと。
+イメージに入っている composer は EC-CUBE 4.0 用の v1 なので、プラグインの依存解決には
+使えない（packagist.org の v1 メタデータは提供終了済み）。上のように v2 を別途落とす。
 
 ### E2E テスト
 
@@ -109,8 +138,9 @@ pnpm exec playwright test
 ## ディレクトリ構成
 
 ```
-ec-cube4-ecauth/
-├── composer.json                    # type: eccube-plugin, code: EcAuthLogin43
+ec-cube4-ecauth/                     # ブランチ 4.0 = EC-CUBE 4.0/4.1 系向け
+├── composer.json                    # type: eccube-plugin, code: EcAuthLogin40
+│                                    # require は ec-cube/plugin-installer のみに保つこと
 ├── PluginManager.php                # enable() でデフォルト Config 作成
 ├── EcAuthLoginEvent.php             # TemplateEvent サブスクライバ
 ├── EcAuthLoginNav.php               # 管理画面ナビゲーション
@@ -121,14 +151,21 @@ ec-cube4-ecauth/
 │   ├── EcAuthCallbackController.php # 認証コールバック（認証不要）
 │   └── PasskeyAuthController.php    # パスキー認証/登録 API 中継
 ├── Entity/
-│   ├── Config.php                   # plg_ecauth_login43_config
+│   ├── Config.php                   # plg_ecauth_login40_config
 │   └── MemberTrait.php              # dtb_member に ecauth_subject 追加
 ├── Form/Type/Admin/
 │   └── ConfigType.php
+├── Http/                            # PSR-18/PSR-17 相当の自前抽象（本体に無いため）
+│   ├── HttpClientInterface.php
+│   ├── HttpClientExceptionInterface.php
+│   ├── HttpClientException.php
+│   ├── RequestFactoryInterface.php
+│   ├── StreamFactoryInterface.php
+│   └── GuzzleClient.php             # Guzzle を触ってよい唯一のクラス
 ├── Repository/
 │   └── ConfigRepository.php
 ├── Security/
-│   └── AdminPasswordLoginListener.php # 管理画面のパスワード認証を拒否する
+│   └── AdminPasswordLoginListener.php # kernel.request で管理画面のパスワード認証を拒否
 ├── Service/
 │   ├── AdminPasswordLoginPolicy.php # パスワード認証を無効化するかの判定
 │   ├── EcAuthApiClient.php          # EcAuth API HTTP クライアント
@@ -136,17 +173,19 @@ ec-cube4-ecauth/
 ├── Resource/
 │   ├── config/services.yaml
 │   ├── locale/messages.ja.yaml
-│   ├── template/admin/
+│   ├── template/admin/              # Bootstrap 4 で書くこと（4.0/4.1 の管理画面）
 │   │   ├── config.twig
 │   │   ├── passkey_list.twig
 │   │   └── login_passkey.twig
 │   └── assets/js/
 │       └── ecauth-auth.umd.js       # @ecauth/auth-js ビルド成果物（gitignore）
 ├── Tests/specs/                     # Playwright E2E テスト
-├── Dockerfile
+├── docker/
+│   └── fix-composer-v1.php          # 検証環境の EC-CUBE 本体を Composer v1 向けに調整
+├── Dockerfile                       # EC-CUBE 本体ごとビルドする（公式イメージが無いため）
 ├── docker-compose.yml
 ├── docker-compose.override.yml
-└── docker-entrypoint.sh
+└── docker-entrypoint.sh             # tar.gz を作って eccube:plugin:install --path= で導入
 ```
 
 ## EcAuth API エンドポイント（本プラグインが呼び出す）
@@ -161,57 +200,255 @@ ec-cube4-ecauth/
 | `DELETE /v1/b2b/passkey/{credentialId}` | Bearer Token | 削除 |
 | `POST /v1/token` | client_id + client_secret | トークン交換 |
 
+## EC-CUBE 4.0/4.1 固有の制約
+
+4.2/4.3 版（`main` ブランチ / EcAuthLogin43）から移植する際に踏んだ非互換を、**実測した
+事実だけ**まとめる。推測でここに足さないこと。
+
+### 依存パッケージ（各バージョンの composer.lock 実測）
+
+| パッケージ | 4.0.6-p5 | 4.1.2-p5 | 4.3 系 |
+|---|---|---|---|
+| php | ^7.1.3 | ^7.3 | ^8.1 |
+| symfony/* | **3.4** | **4.4** | 6.4 |
+| psr/http-client | **なし** | **なし** | あり |
+| psr/http-factory | **なし** | **なし** | あり |
+| guzzlehttp/guzzle | 6.4.1 | 6.5.5 | ^7 |
+| guzzlehttp/psr7 | 1.6.1 | 1.8.3 | 2.x |
+| doctrine/persistence | 1.2.0 | 1.3.8 | 3.x |
+| symfony/translation-contracts | **なし** | 2.5.0 | あり |
+| ec-cube/plugin-installer | 0.0.8 | 2.0.1 | ^2.0 |
+| symfony/cache（`cache.app`） | 3.4 | 4.4 | あり |
+
+### API の置き換え表
+
+| 4.2/4.3 版 | 4.0/4.1 版 | 理由 |
+|---|---|---|
+| `Psr\Http\Client\ClientInterface` | `Plugin\EcAuthLogin40\Http\HttpClientInterface` | PSR-18 が本体に無い |
+| `Psr\Http\Message\RequestFactoryInterface` | `Plugin\EcAuthLogin40\Http\RequestFactoryInterface` | PSR-17 が本体に無い |
+| `UserPasswordHasherInterface` | `Security\Core\Encoder\UserPasswordEncoderInterface` | PasswordHasher は Symfony 5.3+ |
+| `Symfony\Contracts\Translation\TranslatorInterface` | `Symfony\Component\Translation\TranslatorInterface` | 4.0 に translation-contracts が無い |
+| `Doctrine\Persistence\ManagerRegistry` | `Doctrine\Common\Persistence\ManagerRegistry` | 4.0 の doctrine/persistence 1.2 に新名前空間が無い |
+| `Psr\Container\ContainerInterface`（PluginManager） | `DependencyInjection\ContainerInterface` | 4.0/4.1 の `AbstractPluginManager` のシグネチャ |
+| `new UsernamePasswordToken($user, $firewall, $roles)` | `new UsernamePasswordToken($user, null, $firewall, $roles)` | 3.4/4.4 は 4 引数（第 2 が credentials） |
+| `CheckPassportEvent` | `kernel.request`（priority 10） | 新認証システムは Symfony 5.1+ |
+| `%env(default:param:NAME)%` | `parameters: env(NAME)` + `%env(NAME)%` | `default:` プロセッサは Symfony 4.0+ |
+| `eccube.rate_limiter` | （提供しない） | 本体のレート制限機能は 4.2 から |
+| `eccube:composer:require --from=` | `eccube:plugin:install --path=` | `--from` は 4.2 で追加 |
+| Bootstrap 5（`data-bs-*` / `ms-` / `badge bg-*`） | Bootstrap 4（`data-*` / `ml-` / `badge badge-*`） | 管理画面が読むのは Bootstrap 4.3.1 |
+
+そのまま使えることを確認済みのもの: `TemplateEvent`（API 同一、`Eccube\Twig\Template` から
+dispatch される）、`EccubeNav`、`AbstractPluginManager`、`AbstractRepository`、
+`AbstractController::addSuccess|addWarning`、`EntityExtension`、プラグインの
+`Resource/config/services.yaml` と `Resource/locale` の読み込み、歯車リンクのルート名規約
+（`Container::underscore(code).'_admin_config'`）、`cache.app`(PSR-6)、`%timezone%`。
+`@admin/login.twig` は 4.0 と 4.1 で完全に同一で、`login_frame.twig` に
+`{% block javascript %}` があるため `setSource()` で差し込む手法もそのまま通る。
+
+### 配布物の取得元と checksum
+
+検証環境の Dockerfile が落としてくるもの（EC-CUBE 本体・composer.phar）は SHA-256 で検証する。
+
+- EC-CUBE 本体は **GitHub のリリースアセット**から取得する。
+  `downloads.ec-cube.net/src/eccube-<version>.tar.gz` にも同名のファイルがあるが、
+  **GitHub 側とはバイト列が異なり**（4.0.6-p5 で 35,891,624 / 35,922,621 バイト）、
+  公開されている checksum では検証できない。GitHub のリリースには
+  `eccube-<version>.tar.gz.checksum.sha256` が併載されている。
+  vendor 同梱・ディレクトリ構成が downloads 版と同じであることは確認済み
+- **ハッシュは Dockerfile に焼き込む**。配布元から checksum も取得して突き合わせる方式は、
+  配布元が汚染されたときに両方差し替えられて検証の意味が無くなる
+- composer.phar も同じ方針（`getcomposer.org/download/<version>/composer.phar.sha256sum`
+  の値を焼き込む）
+- **バージョンを増やすときはハッシュも追記する**。未登録のままビルドすると
+  「SHA-256 が登録されていません」で止まる。検証を黙って飛ばさないための作りなので、
+  面倒でも case 文を潰さないこと
+- 一時的に別バージョンを試すときは `--build-arg ECCUBE_SHA256=...` で渡せる
+
+### Composer v1 のメタデータ提供終了（4.0 系）
+
+packagist.org は 2025-08-01 に Composer v1 向けメタデータの提供を終了した。EC-CUBE 4.0 系は
+composer/composer ^1.6 に依存しており、プラグインの install / enable / disable / uninstall /
+update が composer を経由すると依存解決に失敗しうる。
+詳細と対応は [EC-CUBE4.0系(Composer v1)利用時の注意点](https://doc4.ec-cube.net/plugin_eccube40)。
+
+このプラグインでの向き合い方:
+
+- **`composer.json` の require を `ec-cube/plugin-installer` だけに保つ**。依存を足すと、
+  利用者が本体の composer.json に vcs リポジトリを書き足す必要が生じる（上記ドキュメント参照）。
+  HTTP クライアントを自前抽象にしているのはこのため
+- 検証環境は `eccube:plugin:install --path=` を使う。この経路は composer をまったく呼ばない
+  （`PluginService::install()` は展開・アセットコピー・DB 登録だけを行う）
+- 検証環境の Dockerfile は、本体側の対応（require-dev 削除 / packagist.org 無効化 /
+  plugin-installer を vcs 参照）を `docker/fix-composer-v1.php` で適用している。
+  CLI 経路では本来不要だが、管理画面からのインストールを手で試したときに素の状態だと詰まるため
+
+### プラグインが「有効なのに動かない」状態（偶発的に起きる）
+
+`EccubeExtension::prepend()` は `dtb_plugin` を読んで「無効なプラグイン」の一覧を
+`eccube.plugins.disabled` に入れ、`PluginPass` がその名前空間のサービスから
+`doctrine.repository_service` 以外の **全タグを剥がす**。
+
+問題は `prepend()` が **DB に接続できなかったときに `app/Plugin` のディレクトリ一覧を
+そのまま無効扱いにして早期 return する** こと。
+
+```php
+$pluginDirs = $this->getPluginDirectories($pluginDir);
+$container->setParameter('eccube.plugins.disabled', $pluginDirs);  // ← 初期値
+// ...
+if (!$this->isConnected($conn)) {
+    return;   // ← ここを通ると app/Plugin 配下が全部「無効」のまま確定する
+}
+```
+
+この状態でコンパイルされたコンテナが残ると
+
+- `dtb_plugin.enabled` は `t`
+- なのに `kernel.event_subscriber` が剥がれていて `TemplateEvent` が発火しない
+- 表に出る症状は「ログイン画面にパスキーのボタンが出ない」だけ
+
+という、極めて切り分けにくい状態になる。
+
+**偶発的にしか起きない。** 同じ手順で起動し直すと再現しないことがある（実際、CI の
+4.1 系 E2E で踏んだあと、同じイメージで起動し直したら `ping: true` で正常にコンパイル
+された）。したがって **一度通ったから大丈夫、とは言えない**。原因はバージョンに依存
+しないので 4 系のどれでも起こりうる。「4.0 では起きない」と考えないこと。
+
+4.1 系で先に顕在化したのは、`PluginPass` が
+
+```php
+$plugins = $container->getParameter('eccube.plugins.disabled');
+if (empty($plugins)) { return; }
+```
+
+と早期 return する一方、4.1 の fixtures が `Recommend4` / `Coupon4` など 10 個を
+無効状態で `dtb_plugin` に登録するため、一覧が空にならずタグ剥がしまで到達しやすいから。
+
+#### 対処
+
+`docker-entrypoint.sh` は Apache を起動する前に
+
+1. `cache:clear --no-warmup` → `cache:warmup --no-optional-warmers`（CLI 側で作り切る。
+   clear だけだと最初のコンパイルが Apache = www-data 側で走り、CLI とは環境変数も
+   パーミッションも違う状態になる。4.2/4.3 版の entrypoint も両者をペアで呼んでいる）
+2. **コンパイル結果を検証**し、プラグインが `eccube.plugins.disabled` に残っていたら
+   作り直す（最大 3 回）
+3. それでも直らなければ **起動を止める**
+
+をやっている。偶発的な事象なので「作って終わり」にせず検証まで含めるのが要点。
+静かに壊れたまま起動させると、E2E が個々の spec の失敗として散らばり原因に辿り着けない。
+
+確認コマンド:
+
+```bash
+# DB 上は有効か
+bin/console doctrine:query:sql "select code, enabled from dtb_plugin where code = 'EcAuthLogin40'"
+
+# コンテナ側でも有効とみなされているか
+# (ここに EcAuthLogin40 が出てきたら、上記の「有効なのに剥がれている」状態)
+bin/console debug:container --parameter=eccube.plugins.disabled
+```
+
+CI の E2E ジョブにも同じ確認ステップを置いてある。
+
+### `extra.id` を 0 にしてある理由
+
+`composer.json` の `extra.id` はオーナーズストアのプラグイン ID。43 版は 3557 を持つが、
+40 版は別パッケージとして申請するため未採番で、暫定的に 0 を入れている。
+**オーナーズストアで採番されたら差し替えること。**
+
+0 にしておくと実装上も都合がよい。`PluginService::readConfig()` は `extra.id` を `source` として
+返し、`installWithCode()` は `source` が真のときだけ `getPluginRequired()` → composer による
+依存解決に入る。0 なら composer をまったく経由しない。
+
 ## コーディング規約
 
 - **Entity プロパティ名は snake_case** を使用する（EC-CUBE 本体の規約に準拠）。PSR-12 の camelCase 推奨よりも EC-CUBE 本体との一貫性を優先する
 - EC-CUBE 本体のコーディングスタイルに従う
-- **関数定義（パラメータ）の末尾カンマは禁止**。PHP 8.0+ の構文であり、PHP 7.4 で動作しなくなるため。配列リテラルと関数呼び出しの末尾カンマ（PHP 7.3+ で可）はそのまま使ってよい
-  - `Tests/.php-cs-fixer.dist.php` の `trailing_comma_in_multiline` から `parameters` を除外済み（`arrays` / `arguments` のみ対象）
-  - `Tests/rector.php` の `phpVersion` は `PHP_74` に固定（7.4 互換のリファクタのみ適用）
+- **末尾カンマは配列リテラルだけに許される**。EC-CUBE 4.0 は PHP 7.1.3 以上をサポートするため、
+  関数呼び出しの末尾カンマ（7.3+）も関数定義の末尾カンマ（8.0+）も Parse error になる
+  - `Tests/.php-cs-fixer.dist.php` の `trailing_comma_in_multiline` は `arrays` のみ対象
+  - `Tests/rector.php` の `phpVersion` は `PHP_71` に固定
+  - `phpstan.neon.dist` の `phpVersion` は `70100`
+  - CI の `php-syntax` ジョブが PHP 7.1 / 7.2 / 7.3 で `php -l` を回す。ユニットテストを
+    7.1 で動かせないのは、phpunit ^9.6 の下限が 7.3、php-cs-fixer ^3 の下限が 7.4 で、
+    それ未満では `composer install` 自体が通らないため
 
-## HTTP クライアント (PSR-18)
+## HTTP クライアント
 
-プラグイン内の HTTP 通信は **PSR-18 (`Psr\Http\Client\ClientInterface`)** の抽象に依存する。`GuzzleHttp\Client` を直接 `new` したり `use` したりしない。
+プラグイン内の HTTP 通信は **プラグイン自身が定義した抽象**（`Plugin\EcAuthLogin40\Http\*`）に
+依存する。`GuzzleHttp\Client` を直接 `new` したり `use` したりしてよいのは
+`Http/GuzzleClient.php` だけ。
 
-- DI するインタフェース:
-  - `Psr\Http\Client\ClientInterface` — HTTP 送信
-  - `Psr\Http\Message\RequestFactoryInterface` — PSR-7 Request 生成
-  - `Psr\Http\Message\StreamFactoryInterface` — PSR-7 Body 生成
-- 実装バインドは `Resource/config/services.yaml` の以下 3 エントリで一元管理:
-  ```yaml
-  Psr\Http\Client\ClientInterface:
-      class: GuzzleHttp\Client
-      arguments:
-          - { timeout: 30, http_errors: false }
-  Psr\Http\Message\RequestFactoryInterface:
-      class: GuzzleHttp\Psr7\HttpFactory
-  Psr\Http\Message\StreamFactoryInterface:
-      class: GuzzleHttp\Psr7\HttpFactory
-  ```
-- EC-CUBE 4.2+ は本体が `guzzlehttp/guzzle:^7` を依存として持つため Guzzle を利用。実装を差し替える場合は本エントリの class のみ変更する
-- `composer.json` は `psr/http-client` / `psr/http-factory` / `psr/http-message` のみを require し、Guzzle は直接 require しない（本体経由で解決）
-- 例外捕捉は `Psr\Http\Client\ClientExceptionInterface` を使う（Guzzle 固有の例外型には依存しない）
+### なぜ PSR-18 / PSR-17 を使わないのか
+
+EC-CUBE 4.0/4.1 の依存には `psr/http-client`（PSR-18）も `psr/http-factory`（PSR-17）も
+**含まれない**（composer.lock 実測）。本体が持つのは `psr/http-message`（PSR-7）1.0.1 と
+`guzzlehttp/guzzle` 6.x で、Guzzle 6 は PSR-18 を実装していない（7.0 から）。
+`GuzzleHttp\Psr7\HttpFactory` も psr7 2.x で入ったもので 1.x には無い。
+
+プラグイン側で `psr/http-client` を require する手もあるが、4.0 系では避ける。
+Composer v1 のメタデータ提供が終了しているため、`ec-cube/plugin-installer` 以外の依存を
+持つプラグインは、**利用者が EC-CUBE 本体の composer.json に vcs リポジトリを書き足さないと
+インストールできなくなる**（[EC-CUBE4.0系(Composer v1)利用時の注意点](https://doc4.ec-cube.net/plugin_eccube40)）。
+依存を増やさないことがそのまま導入しやすさになるため、PSR-18/PSR-17 相当のインタフェースだけを
+プラグイン内に置いている。PSR-7 は本体にあるのでそのまま使う。
+
+- DI するインタフェース（`Http/`）:
+  - `HttpClientInterface` — HTTP 送信（PSR-18 相当）
+  - `RequestFactoryInterface` — PSR-7 Request 生成（PSR-17 相当）
+  - `StreamFactoryInterface` — PSR-7 Body 生成（PSR-17 相当）
+- 実装は `Http\GuzzleClient` 1 クラスが 3 つとも担う。バインドは
+  `Resource/config/services.yaml` のエイリアス 3 本で一元管理する
+- 例外は `Http\HttpClientExceptionInterface` を catch する（Guzzle 固有の例外型に依存しない）
+- ストリームは `php://temp` から自前で組み立てている。psr7 1.7 で入った
+  `GuzzleHttp\Psr7\Utils` は 4.0 の 1.6.1 に無く、逆に 1.x の関数 API
+  `GuzzleHttp\Psr7\stream_for` は 2.x で削除されているため、どちらにも依存できない
+- ユニットテストは `Tests/Unit/Support/TestPsr17Factory` が nyholm/psr7 を包んでこの抽象に
+  合わせる。テストのために Guzzle を持ち出す必要は無い
+- **`guzzlehttp/guzzle` は require-dev にも入れない**。Guzzle 6 系は全バージョンに
+  セキュリティアドバイザリが出ており、composer の `policy.advisories.block`（既定で有効）が
+  `composer install` 自体を失敗させる。静的解析で `GuzzleHttp\ClientInterface` の型を
+  解決したくなるが、そのために 6 系を require-dev へ足すことはできない
+  （実際に CI がこれで落ちた。`policy.advisories.ignore` を配布物の composer.json に
+  書いて回避するのも、利用者側に脆弱性の無視を配ることになるので採らない）
+- **`composer.json` の require は `ec-cube/plugin-installer` だけに保つこと**
 
 ## 環境変数の取り扱い
 
-**コード内で `getenv()` / `$_ENV` を直接参照しない**。Symfony の env プロセッサ (`%env(...)%`) を経由して DI で注入する。
+**コード内で `getenv()` / `$_ENV` を直接参照しない**。Symfony の env プロセッサ（`%env(...)%`）を
+経由して DI で注入する。
 
-- 環境変数名は `services.yaml` の `bind:` または個別サービスの `arguments:` で `%env(...)%` 展開してパラメータとしてサービスに渡す
-- デフォルト値 (env 未設定時のフォールバック) は `parameters:` に定義し、`%env(default:<param名>:<ENV名>)%` で参照する
+- デフォルト値は **`env(NAME)` という名前のパラメータ**で与える
+
   ```yaml
   parameters:
-      ecauth_default_discovery_url: 'https://api.ec-auth.io'
+      env(ECAUTH_CLIENT_RESOLVE_URL): 'https://api.ec-auth.io'
 
   services:
-      Plugin\EcAuthLogin43\:
-          # ...
+      _defaults:
           bind:
-              $discoveryUrl: '%env(default:ecauth_default_discovery_url:ECAUTH_CLIENT_RESOLVE_URL)%'
+              $discoveryUrl: '%env(ECAUTH_CLIENT_RESOLVE_URL)%'
   ```
-- メリット:
-  - モックテストで env を書き換えずにコンストラクタ引数で値を注入できる
-  - `bin/console debug:container --env-vars` で env 使用箇所を一覧できる
-  - env 未設定時のフォールバック値がコードではなく config に集約される
+
+- 4.2/4.3 版が使う `%env(default:パラメータ名:NAME)%` は**使えない**。`default:` プロセッサは
+  Symfony 4.0 で追加されたもので、EC-CUBE 4.0 が使う Symfony 3.4 には無い
+  （3.4 の `EnvVarProcessor::getProvidedTypes()` が返すのは base64 / bool / const / file /
+  float / int / json / resolve / string のみ）。書くと "Unsupported env var prefix" で
+  コンテナのコンパイルに失敗する
+- `env(NAME)` パラメータによる既定値は Symfony 3.3 以降で使え、4.4 でも同じ意味になるため
+  4.0 / 4.1 のどちらでも動く
+
+### bind は `_defaults` に置く
+
+`bind` は**定義ブロックごとに閉じている**。`Plugin\EcAuthLogin40\` の resource 定義の中に
+書くと、後から個別に上書きした定義（`CachedJwksProvider` など）には引き継がれず、
+
+```
+Cannot autowire service "...": argument "$signupUrl" of method "__construct()"
+is type-hinted "string", you should configure its value explicitly.
+```
+
+で `eccube:plugin:enable` が失敗する。`_defaults` に置けばこのファイル内のどの定義にも効く。
 
 ## EcAuth 連携で踏みやすい罠
 
@@ -270,7 +507,7 @@ EcAuth 側であり、テナントが変われば別の値が降ってきて衝�
 
 ### 切り替えを DB ではなく環境変数に置いている理由
 
-プラグイン設定（`plg_ecauth_login43_config`）に持たせると、**管理画面を乗っ取られた時点で
+プラグイン設定（`plg_ecauth_login40_config`）に持たせると、**管理画面を乗っ取られた時点で
 パスワード認証を戻されてしまい、対策として成立しない**。環境変数はアプリケーションの外側に
 あり管理画面から触れないため、乗っ取り後の復帰手段にならない。
 
@@ -290,13 +527,15 @@ glob で読むが、`Eccube\DependencyInjection\Compiler\PluginPass` が**無効
 `Plugin\<Code>\` 名前空間のサービスから全タグを剥がす**（`doctrine.repository_service` のみ例外）。
 `kernel.event_subscriber` も剥がれるため、リスナーが登録されなくなる。
 
-環境変数を `1` のまま固定して実測した結果:
+環境変数を `1` のまま固定し、`disable_admin_password.spec.ts` の
+「正しい ID とパスワードでもログインできない」を各状態で流して実測した結果
+（**4.0.6-p5 / 4.1.2-p5 の両方で同じ結果**）:
 
-| 操作 | POST /admin/login | /admin/ |
-|---|---|---|
-| プラグイン有効 | 302 → `/admin/login`（拒否） | 302 → login |
-| `dtb_plugin.enabled = false` のみ | 302 → `/admin/login`（拒否） | 302 → login |
-| 上記 + `cache:clear` | 302 → `/admin/`（ログイン成立） | 200 |
+| 操作 | 管理画面へのログイン |
+|---|---|
+| プラグイン有効 | 拒否される |
+| `dtb_plugin.enabled = false` のみ | **拒否されたまま** |
+| 上記 + `cache:clear` | ログインが成立してしまう |
 
 **DB 書き換え単独では迂回できない**（有効・無効はコンテナのコンパイル時に解決されるため）。
 迂回には DB 書き込みに加えてキャッシュ再構築＝ファイルシステム / CLI アクセスが要る。
@@ -306,41 +545,63 @@ glob で読むが、`Eccube\DependencyInjection\Compiler\PluginPass` が**無効
 **この経路はプラグイン内では塞げない。ドキュメント化が正しい対処**であり、「プラグイン外で
 強制する」方向へ実装を広げないこと。
 
-### 塞いでいる場所は `CheckPassportEvent`（`Security/AdminPasswordLoginListener`）
+### 塞いでいる場所は `kernel.request`（`Security/AdminPasswordLoginListener`）
 
 ログイン画面のテンプレート（`login_passkey.twig`）が入力欄を隠すのは案内でしかない。
-実際に拒否しているのは Symfony の認証パイプラインで、`curl` 等でフォームを経由せずに
-POST されても同じように弾く。ルートやパスで判定していないのは、`%eccube_admin_route%` が
-サイトごとに変更できるため（パス判定はカスタマイズ済みサイトで素通りする）。
+実際に拒否しているのは `kernel.request` に入ったリスナーで、`curl` 等でフォームを経由せずに
+POST されても同じように弾く。
 
-#### 優先度 300 の理由（Symfony 5.4 / 6.4 / 7.x で並びは同じ）
+#### 4.2/4.3 版と実装が違う
+
+4.2/4.3 版は `CheckPassportEvent`（Symfony の認証パイプライン）に割り込んでいるが、あれは
+**Symfony 5.1 で入った新しい認証システムの仕組み**で、EC-CUBE 4.0/4.1 が使う Symfony 3.4 /
+4.4 には存在しない。この系統の管理画面ログインは security.yaml の `form_login`
+（`UsernamePasswordFormAuthenticationListener`）で処理される。移植時にここだけは
+そのまま持ってこられないので、`kernel.request` でファイアウォールの手前に立つ方式に変えた。
+
+#### 優先度 10 の理由
 
 ```
-2080 LoginThrottlingListener   総当たり制限は従来どおり先に効かせる
-1024 UserProviderListener      UserBadge に user loader を差すだけ
- 512 CsrfProtectionListener    CSRF 検証も先に通す
-→300 AdminPasswordLoginListener
- 256 UserCheckerListener       ここで初めて $passport->getUser() が実行される
-   0 CheckCredentialsListener  パスワードのハッシュ検証
+32 RouterListener   ここで `_route` が決まる。判定に使うので後に置く必要がある
+→10 本リスナー
+ 8 Firewall         認証処理。ここに入る前に止める
 ```
 
-**`UserCheckerListener` より前**に置くのが要点。ユーザー解決の後に拒否すると、存在しない
-`login_id` は `UserNotFoundException`（表示は「Bad credentials」）、存在する `login_id` は
-「パスワード認証は無効です」となり、**応答の差から login_id の存在を判別できてしまう**
-（ユーザー列挙）。解決前に一律で拒否すればどの `login_id` でも同じ応答になり、パスワードの
-ハッシュ計算も走らない。
+判定は **ルート名 `admin_login`** への POST かどうかで行う。`%eccube_admin_route%` は
+サイトごとに変更できるため、パスで判定するとカスタマイズ済みサイトで素通りする。
+EC-CUBE 本体の security.yaml が admin ファイアウォールの `check_path` にルート名
+`admin_login` を指定しており、Symfony 側も `HttpUtils::checkRequestPath()` で同じルート名との
+一致を見ている。つまり「ログイン試行かどうか」は本体と同じ条件で判定している。
+
+ファイアウォールに入る前に一律で拒否するため、`login_id` の存在有無で応答が変わらない
+（ユーザー列挙が起きない）。ユーザーの解決もパスワードのハッシュ計算も走らない。
+
+#### 4.2/4.3 版との挙動差（意図的）
+
+- **CSRF トークンの検証より前に拒否する**。4.2/4.3 版は CSRF 検証の後だった。無効化されて
+  いる状況ではどのみち全て拒否するため、順序の違いに実害はない
+- Symfony の `login_throttling`（試行回数制限）は 5.2 以降の機能で 4.0/4.1 には無い。
+  4.2/4.3 版にあった「試行制限に先に当たる」挙動はそもそも起こらない
 
 #### ファイアウォール名で絞るのは必須
 
-Symfony は**グローバルに登録された `CheckPassportEvent` リスナーを全ファイアウォールの
-ディスパッチャへ複製する**（SecurityBundle の `RegisterGlobalSecurityEventListenersPass`）。
-つまり EC サイトのフロント会員ログイン（`customer` ファイアウォール）でも本リスナーが動く。
-`admin` で絞り損ねると**会員が誰もログインできなくなる**。リグレッションテストは
+`kernel.request` はあらゆるリクエストで呼ばれる。`FirewallMap::getFirewallConfig()` で
+`admin` に絞り損ねると、EC サイトのフロント会員ログイン（`customer` ファイアウォール）まで
+巻き添えで塞ぎかねない。リグレッションテストは
 `Tests/specs/disable_admin_password.spec.ts` の「EC サイトのフロント会員ログインは影響を
 受けない」。
 
 判定表そのものは EC-CUBE 非依存の `Service/AdminPasswordLoginPolicy` に切り出してあり、
-`Tests/Unit/AdminPasswordLoginPolicyTest.php` が固定している。
+`Tests/Unit/AdminPasswordLoginPolicyTest.php` が固定している。4.2/4.3 版から
+そのまま流用できた唯一の部分で、シグネチャ（`shouldReject(bool, bool)`）も変えていない。
+
+#### 拒否のしかた
+
+ログイン画面へリダイレクトし、セッションの `Security::AUTHENTICATION_ERROR` に
+`CustomUserMessageAuthenticationException` を積む。EC-CUBE の
+`Eccube\Controller\Admin\AdminController::login` が `AuthenticationUtils::getLastAuthenticationError()`
+の戻り値を `error` としてテンプレートへ渡すため、通常の認証失敗とまったく同じ経路で
+文言が表示される。
 
 ### 認証失敗の文言は `validators` ドメインに置く
 
@@ -353,7 +614,7 @@ Symfony は**グローバルに登録された `CheckPassportEvent` リスナー
 他の E2E はパスワードで管理画面にログインするため、無効化状態と同じコンテナには同居
 できない。env だけ差し替えてコンテナを作り直す手も使えない（DB は volume で残るのに
 プラグインの導入状態はコンテナ側にしか無く、`docker-entrypoint.sh` の
-`eccube:plugin:enable` が「既に有効」で落ちて Apache が起動しない）。CI では
+`eccube:plugin:install` が `checkSamePlugin` で落ちる）。CI では
 `.github/workflows/playwright.yml` の `e2e-password-login-disabled` ジョブが
 クリーンな環境を立てて `disable_admin_password.spec.ts` だけを流す。
 
@@ -365,9 +626,9 @@ ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN=1 docker compose up -d --build
 E2E_ADMIN_PASSWORD_LOGIN_DISABLED=1 pnpm exec playwright test Tests/specs/disable_admin_password.spec.ts
 ```
 
-なお EC-CUBE の `login_throttling` は既定で 5 回 / 30 分（`login_id` + IP 単位）。
-spec の中で管理者ログインを失敗させる回数を増やすと、リトライ込みで上限に当たり
-「パスワード認証は無効」ではなく試行制限のエラーになるので注意。
+4.2/4.3 版の CLAUDE.md にある「`login_throttling` の 5 回 / 30 分に当たる」という注意は
+4.0/4.1 には当てはまらない。Symfony の login_throttling は 5.2 以降の機能で、
+4.0/4.1 の `security.yaml` は設定を持たない。
 
 ## セキュリティ注意事項
 
@@ -385,4 +646,11 @@ spec の中で管理者ログインを失敗させる回数を増やすと、リ
   入れなくなる。管理者セッションは `$session->set('_security_admin', serialize($token))` で
   確立する（リダイレクト先の管理画面リクエストで admin firewall が復元する）。
   「Symfony の作法に合わせる」等の理由で `setToken()` に戻さないこと。
-  リグレッションテスト: `Tests/specs/passkey_auth.spec.ts` の `#45:` で始まる test
+  リグレッションテスト: `Tests/specs/passkey_auth.spec.ts` の `#45:` で始まる test。
+  なお `UsernamePasswordToken` の引数は Symfony 3.4 / 4.4 では
+  `($user, $credentials, $providerKey, $roles)` の 4 引数で、5.4 以降の 3 引数版とは別物。
+  資格情報はセッションに serialize されるため、第 2 引数には null を渡している
+- **4.0/4.1 版はパスキー認証オプション取得のレート制限を持たない**。4.2/4.3 版が使う
+  `eccube.rate_limiter` は EC-CUBE 4.2 で入った本体機能で、4.0/4.1 には対応する仕組みが
+  無いため。総当たりへの耐性は EcAuth 側の制限に依存する。ここを塞ぐなら
+  `cache.app` を使った自前のカウンタなどを別途設計すること

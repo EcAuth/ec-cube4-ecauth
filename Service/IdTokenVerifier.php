@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
 use Psr\Log\LoggerInterface;
 
@@ -396,11 +396,11 @@ class IdTokenVerifier
     private function rsaPublicKeyToPem(string $modulus, string $exponent): string
     {
         $rsaPublicKey = $this->derSequence(
-            $this->derInteger($modulus).$this->derInteger($exponent),
+            $this->derInteger($modulus).$this->derInteger($exponent)
         );
 
         $algorithmIdentifier = $this->derSequence(
-            "\x06".$this->derLength(strlen(self::OID_RSA_ENCRYPTION)).self::OID_RSA_ENCRYPTION."\x05\x00",
+            "\x06".$this->derLength(strlen(self::OID_RSA_ENCRYPTION)).self::OID_RSA_ENCRYPTION."\x05\x00"
         );
 
         // BIT STRING の先頭 1 バイトは「未使用ビット数」。バイト境界なので常に 0。

@@ -1,13 +1,13 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Service;
+namespace Plugin\EcAuthLogin40\Service;
 
+use Plugin\EcAuthLogin40\Http\HttpClientExceptionInterface;
+use Plugin\EcAuthLogin40\Http\HttpClientInterface;
+use Plugin\EcAuthLogin40\Http\RequestFactoryInterface;
 use Psr\Cache\CacheException;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -50,7 +50,7 @@ class CachedJwksProvider implements JwksProviderInterface
     private const COOLDOWN_KEY_PREFIX = 'ecauth_jwks_forced_';
 
     /**
-     * @var ClientInterface
+     * @var HttpClientInterface
      */
     private $httpClient;
 
@@ -70,7 +70,7 @@ class CachedJwksProvider implements JwksProviderInterface
     private $logger;
 
     public function __construct(
-        ClientInterface $httpClient,
+        HttpClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         CacheItemPoolInterface $cache,
         LoggerInterface $logger
@@ -205,7 +205,7 @@ class CachedJwksProvider implements JwksProviderInterface
 
         try {
             $response = $this->httpClient->sendRequest($request);
-        } catch (ClientExceptionInterface $e) {
+        } catch (HttpClientExceptionInterface $e) {
             $this->logger->error('EcAuth JWKS request failed', [
                 'error' => $e->getMessage(),
             ]);

@@ -1,99 +1,99 @@
 # 設定画面
-ecauth_login43.admin.config.title: EcAuth 設定
-ecauth_login43.admin.config.sub_title: プラグイン設定
-ecauth_login43.admin.config.signup.header: Client ID / Client Secret の取得方法
-ecauth_login43.admin.config.signup.intro: 本プラグインのご利用には、EcAuth が発行する Client ID と Client Secret が必要です。まだお持ちでない場合は、以下の手順で取得してください。管理者 5 ユーザーまで無料でご利用いただけます。
-ecauth_login43.admin.config.signup.first_time.header: はじめて EcAuth をご利用の場合
-ecauth_login43.admin.config.signup.first_time.step1: 下の「EcAuth に申し込む」ボタンから申込フォームを開き、メールアドレスとサイトの情報を入力します。
-ecauth_login43.admin.config.signup.first_time.step2: 入力したメールアドレス宛に確認メールが届きます。メール内のリンクを開くと、EcAuth のアカウントが作成されます。
-ecauth_login43.admin.config.signup.first_time.step3: EcAuth のマイページに Client ID と Client Secret が表示されます。これを下の「EcAuth 接続設定」に入力し、「登録」ボタンを押してください。
-ecauth_login43.admin.config.signup.link: EcAuth に申し込む
-ecauth_login43.admin.config.signup.registered.header: すでにお申し込み済みの場合
-ecauth_login43.admin.config.signup.registered.description: 申込は不要です。EcAuth のマイページを開くと、ご契約中のショップの Client ID と Client Secret を確認できます。Client Secret が分からなくなった場合は、マイページから再発行できます。
-ecauth_login43.admin.config.signup.mypage.link: EcAuth マイページを開く
-ecauth_login43.admin.config.header: EcAuth 接続設定
-ecauth_login43.admin.config.ecauth_base_url: EcAuth URL
-ecauth_login43.admin.config.ecauth_base_url.help: 通常は未入力で構いません。Client ID から自動解決されます。ステージング・開発環境では直接 URL を指定できますが、許可されたホスト（既定では ec-auth.io のサブドメイン）のみ登録できます。
-ecauth_login43.admin.config.client_id: Client ID
-ecauth_login43.admin.config.client_secret: Client Secret
-ecauth_login43.admin.config.rp_id: RP ID
-ecauth_login43.admin.config.rp_id.help: 未設定の場合、サイトのホスト名が使用されます。
-ecauth_login43.admin.config.advanced_settings: 高度な設定
-ecauth_login43.admin.config.advanced_settings.help: 通常は変更不要です。ステージング・開発環境や RP ID のカスタマイズが必要な場合のみ使用してください。
-ecauth_login43.admin.config.client_resolve.failed: Client ID に対応するテナントが見つかりませんでした。Client ID を確認するか、高度な設定で EcAuth URL を直接指定してください。
-ecauth_login43.admin.config.tenant_changed.caution: Client ID を変更すると接続先のテナントが変わります。登録済みのパスキーはすべて使えなくなり、パスキー管理から登録し直しが必要になります。
-ecauth_login43.admin.config.tenant_changed.confirm: Client ID を変更しようとしています。接続先のテナントが変わるため、登録済みのパスキーはすべて使えなくなり、パスキー管理からの登録し直しが必要になります。よろしいですか？
-ecauth_login43.admin.config.tenant_changed.secret_required: Client ID を変更する場合は、新しい接続先の Client Secret も入力してください。前の接続先の Client Secret は使用できません。
-ecauth_login43.admin.config.tenant_changed.cleared: 接続先のテナントが変わったため、登録済みのパスキー %count% 件分の紐付けを解除しました。パスキー管理から登録し直してください。
-ecauth_login43.admin.config.tenant_changed.no_target: 接続先のテナントが変わりました。
-ecauth_login43.admin.config.tenant_changed.base_url_reused: 新しい Client ID から EcAuth URL を解決できなかったため、これまでの EcAuth URL (%url%) をそのまま使用します。接続先が正しいか確認してください。
-ecauth_login43.admin.config.base_url.not_allowed: EcAuth URL が許可されていないホストを指しています。https で始まる正しい EcAuth の URL を指定してください。開発・ステージング環境のホストを使う場合は、環境変数 ECAUTH_ALLOWED_HOSTS に追加してください。
-ecauth_login43.admin.config.required: 必須
-ecauth_login43.admin.config.save: 登録
-ecauth_login43.admin.config.back: 戻る
-ecauth_login43.admin.config.save.success: 設定を保存しました。
-ecauth_login43.admin.config.next_step.header: 次のステップ
-ecauth_login43.admin.config.next_step.description.ready: 接続設定が完了しました。続けて管理者用のパスキーを登録すると、管理画面にパスキーでログインできるようになります。
-ecauth_login43.admin.config.next_step.description.pending: 接続設定を保存すると、管理者用パスキーの登録に進めます。
-ecauth_login43.admin.config.next_step.link: パスキーを登録する
+ecauth_login40.admin.config.title: EcAuth 設定
+ecauth_login40.admin.config.sub_title: プラグイン設定
+ecauth_login40.admin.config.signup.header: Client ID / Client Secret の取得方法
+ecauth_login40.admin.config.signup.intro: 本プラグインのご利用には、EcAuth が発行する Client ID と Client Secret が必要です。まだお持ちでない場合は、以下の手順で取得してください。管理者 5 ユーザーまで無料でご利用いただけます。
+ecauth_login40.admin.config.signup.first_time.header: はじめて EcAuth をご利用の場合
+ecauth_login40.admin.config.signup.first_time.step1: 下の「EcAuth に申し込む」ボタンから申込フォームを開き、メールアドレスとサイトの情報を入力します。
+ecauth_login40.admin.config.signup.first_time.step2: 入力したメールアドレス宛に確認メールが届きます。メール内のリンクを開くと、EcAuth のアカウントが作成されます。
+ecauth_login40.admin.config.signup.first_time.step3: EcAuth のマイページに Client ID と Client Secret が表示されます。これを下の「EcAuth 接続設定」に入力し、「登録」ボタンを押してください。
+ecauth_login40.admin.config.signup.link: EcAuth に申し込む
+ecauth_login40.admin.config.signup.registered.header: すでにお申し込み済みの場合
+ecauth_login40.admin.config.signup.registered.description: 申込は不要です。EcAuth のマイページを開くと、ご契約中のショップの Client ID と Client Secret を確認できます。Client Secret が分からなくなった場合は、マイページから再発行できます。
+ecauth_login40.admin.config.signup.mypage.link: EcAuth マイページを開く
+ecauth_login40.admin.config.header: EcAuth 接続設定
+ecauth_login40.admin.config.ecauth_base_url: EcAuth URL
+ecauth_login40.admin.config.ecauth_base_url.help: 通常は未入力で構いません。Client ID から自動解決されます。ステージング・開発環境では直接 URL を指定できますが、許可されたホスト（既定では ec-auth.io のサブドメイン）のみ登録できます。
+ecauth_login40.admin.config.client_id: Client ID
+ecauth_login40.admin.config.client_secret: Client Secret
+ecauth_login40.admin.config.rp_id: RP ID
+ecauth_login40.admin.config.rp_id.help: 未設定の場合、サイトのホスト名が使用されます。
+ecauth_login40.admin.config.advanced_settings: 高度な設定
+ecauth_login40.admin.config.advanced_settings.help: 通常は変更不要です。ステージング・開発環境や RP ID のカスタマイズが必要な場合のみ使用してください。
+ecauth_login40.admin.config.client_resolve.failed: Client ID に対応するテナントが見つかりませんでした。Client ID を確認するか、高度な設定で EcAuth URL を直接指定してください。
+ecauth_login40.admin.config.tenant_changed.caution: Client ID を変更すると接続先のテナントが変わります。登録済みのパスキーはすべて使えなくなり、パスキー管理から登録し直しが必要になります。
+ecauth_login40.admin.config.tenant_changed.confirm: Client ID を変更しようとしています。接続先のテナントが変わるため、登録済みのパスキーはすべて使えなくなり、パスキー管理からの登録し直しが必要になります。よろしいですか？
+ecauth_login40.admin.config.tenant_changed.secret_required: Client ID を変更する場合は、新しい接続先の Client Secret も入力してください。前の接続先の Client Secret は使用できません。
+ecauth_login40.admin.config.tenant_changed.cleared: 接続先のテナントが変わったため、登録済みのパスキー %count% 件分の紐付けを解除しました。パスキー管理から登録し直してください。
+ecauth_login40.admin.config.tenant_changed.no_target: 接続先のテナントが変わりました。
+ecauth_login40.admin.config.tenant_changed.base_url_reused: 新しい Client ID から EcAuth URL を解決できなかったため、これまでの EcAuth URL (%url%) をそのまま使用します。接続先が正しいか確認してください。
+ecauth_login40.admin.config.base_url.not_allowed: EcAuth URL が許可されていないホストを指しています。https で始まる正しい EcAuth の URL を指定してください。開発・ステージング環境のホストを使う場合は、環境変数 ECAUTH_ALLOWED_HOSTS に追加してください。
+ecauth_login40.admin.config.required: 必須
+ecauth_login40.admin.config.save: 登録
+ecauth_login40.admin.config.back: 戻る
+ecauth_login40.admin.config.save.success: 設定を保存しました。
+ecauth_login40.admin.config.next_step.header: 次のステップ
+ecauth_login40.admin.config.next_step.description.ready: 接続設定が完了しました。続けて管理者用のパスキーを登録すると、管理画面にパスキーでログインできるようになります。
+ecauth_login40.admin.config.next_step.description.pending: 接続設定を保存すると、管理者用パスキーの登録に進めます。
+ecauth_login40.admin.config.next_step.link: パスキーを登録する
 
 # 管理画面のパスワード認証（設定画面のステータスカード）
 # %env% には Service/AdminPasswordLoginPolicy::ENV_NAME が入る。
-ecauth_login43.admin.config.password_login.header: 管理画面のパスワード認証
-ecauth_login43.admin.config.password_login.status: 現在の状態
-ecauth_login43.admin.config.password_login.status.enabled: 有効（ID とパスワードでログインできます）
-ecauth_login43.admin.config.password_login.status.disabled: 無効（パスキーでのみログインできます）
-ecauth_login43.admin.config.password_login.description: 管理画面のパスワード認証を無効にすると、不正に作られた管理者アカウントでログインされることを防げます。切り替えは環境変数 %env% で行い、管理画面からは変更できません。設定画面から切り替えられるようにすると、この画面に入れた時点で無効化を解除できてしまうためです。
-ecauth_login43.admin.config.password_login.how_to.disable: '無効にする: EC-CUBE の .env に %env%=1 を追記します（Web サーバーやコンテナの環境変数として設定しても構いません）。'
-ecauth_login43.admin.config.password_login.how_to.enable: '有効に戻す: %env% を 0 にするか、設定ごと削除します。'
-ecauth_login43.admin.config.password_login.caution.before_disable: 無効にする前に、少なくとも 1 人の管理者がパスキーを登録済みであることを必ず確認してください。誰も登録していない状態で無効にすると、管理画面にログインできなくなります。
-ecauth_login43.admin.config.password_login.caution.lost_passkey: パスキーを紛失したときは、%env% を 0 に戻せばパスワードでログインできます。
-ecauth_login43.admin.config.password_login.caution.new_member: 無効化している間に作成した管理者は、パスキーを登録するまでログインできません。
+ecauth_login40.admin.config.password_login.header: 管理画面のパスワード認証
+ecauth_login40.admin.config.password_login.status: 現在の状態
+ecauth_login40.admin.config.password_login.status.enabled: 有効（ID とパスワードでログインできます）
+ecauth_login40.admin.config.password_login.status.disabled: 無効（パスキーでのみログインできます）
+ecauth_login40.admin.config.password_login.description: 管理画面のパスワード認証を無効にすると、不正に作られた管理者アカウントでログインされることを防げます。切り替えは環境変数 %env% で行い、管理画面からは変更できません。設定画面から切り替えられるようにすると、この画面に入れた時点で無効化を解除できてしまうためです。
+ecauth_login40.admin.config.password_login.how_to.disable: '無効にする: EC-CUBE の .env に %env%=1 を追記します（Web サーバーやコンテナの環境変数として設定しても構いません）。'
+ecauth_login40.admin.config.password_login.how_to.enable: '有効に戻す: %env% を 0 にするか、設定ごと削除します。'
+ecauth_login40.admin.config.password_login.caution.before_disable: 無効にする前に、少なくとも 1 人の管理者がパスキーを登録済みであることを必ず確認してください。誰も登録していない状態で無効にすると、管理画面にログインできなくなります。
+ecauth_login40.admin.config.password_login.caution.lost_passkey: パスキーを紛失したときは、%env% を 0 に戻せばパスワードでログインできます。
+ecauth_login40.admin.config.password_login.caution.new_member: 無効化している間に作成した管理者は、パスキーを登録するまでログインできません。
 
 # ナビゲーション
-ecauth_login43.admin.nav.config: EcAuth
-ecauth_login43.admin.nav.config.setting: EcAuth 設定
-ecauth_login43.admin.nav.config.passkey: パスキー管理
+ecauth_login40.admin.nav.config: EcAuth
+ecauth_login40.admin.nav.config.setting: EcAuth 設定
+ecauth_login40.admin.nav.config.passkey: パスキー管理
 
 # パスキー管理画面
-ecauth_login43.admin.passkey.title: パスキー管理
-ecauth_login43.admin.passkey.sub_title: パスキー管理
-ecauth_login43.admin.passkey.header: 登録済みパスキー
-ecauth_login43.admin.passkey.device_name: デバイス名
-ecauth_login43.admin.passkey.created_at: 登録日時
-ecauth_login43.admin.passkey.last_used_at: 最終使用日時
-ecauth_login43.admin.passkey.delete: 削除
-ecauth_login43.admin.passkey.delete.confirm: このパスキーを削除してよろしいですか？
-ecauth_login43.admin.passkey.delete.success: パスキーを削除しました。
-ecauth_login43.admin.passkey.delete.error: パスキーの削除に失敗しました。
-ecauth_login43.admin.passkey.add: パスキーを追加
-ecauth_login43.admin.passkey.empty: 登録済みパスキーはありません。
-ecauth_login43.admin.passkey.verify_password: パスワード確認
-ecauth_login43.admin.passkey.verify_password.label: 本人確認のため、パスワードを入力してください。
-ecauth_login43.admin.passkey.verify_password.submit: 確認
-ecauth_login43.admin.passkey.verify_password.cancel: キャンセル
-ecauth_login43.admin.passkey.verify_password.error: パスワードが正しくありません。
-ecauth_login43.admin.passkey.register.success: パスキーを登録しました。
-ecauth_login43.admin.passkey.register.error: パスキーの登録に失敗しました。
-ecauth_login43.admin.passkey.config_required: EcAuth の設定を先に完了してください。
-ecauth_login43.admin.passkey.login_required: パスキー一覧を表示するには、パスキー登録後、一旦ログアウトしてパスキーでログインしてください。
-ecauth_login43.admin.passkey.current: ログイン中
+ecauth_login40.admin.passkey.title: パスキー管理
+ecauth_login40.admin.passkey.sub_title: パスキー管理
+ecauth_login40.admin.passkey.header: 登録済みパスキー
+ecauth_login40.admin.passkey.device_name: デバイス名
+ecauth_login40.admin.passkey.created_at: 登録日時
+ecauth_login40.admin.passkey.last_used_at: 最終使用日時
+ecauth_login40.admin.passkey.delete: 削除
+ecauth_login40.admin.passkey.delete.confirm: このパスキーを削除してよろしいですか？
+ecauth_login40.admin.passkey.delete.success: パスキーを削除しました。
+ecauth_login40.admin.passkey.delete.error: パスキーの削除に失敗しました。
+ecauth_login40.admin.passkey.add: パスキーを追加
+ecauth_login40.admin.passkey.empty: 登録済みパスキーはありません。
+ecauth_login40.admin.passkey.verify_password: パスワード確認
+ecauth_login40.admin.passkey.verify_password.label: 本人確認のため、パスワードを入力してください。
+ecauth_login40.admin.passkey.verify_password.submit: 確認
+ecauth_login40.admin.passkey.verify_password.cancel: キャンセル
+ecauth_login40.admin.passkey.verify_password.error: パスワードが正しくありません。
+ecauth_login40.admin.passkey.register.success: パスキーを登録しました。
+ecauth_login40.admin.passkey.register.error: パスキーの登録に失敗しました。
+ecauth_login40.admin.passkey.config_required: EcAuth の設定を先に完了してください。
+ecauth_login40.admin.passkey.login_required: パスキー一覧を表示するには、パスキー登録後、一旦ログアウトしてパスキーでログインしてください。
+ecauth_login40.admin.passkey.current: ログイン中
 
 # ログイン画面
-ecauth_login43.admin.login.passkey_button: パスキーでログイン
-ecauth_login43.admin.login.passkey.error: パスキー認証に失敗しました。
+ecauth_login40.admin.login.passkey_button: パスキーでログイン
+ecauth_login40.admin.login.passkey.error: パスキー認証に失敗しました。
 # NotAllowedError は「利用者がキャンセルした」場合と「該当するパスキーが端末に無い」
 # 場合の両方で発生し、ブラウザ API 上は区別できない。双方に当てはまる文面にする（#58）。
-ecauth_login43.admin.login.passkey.not_found: パスキーが見つからないか、認証がキャンセルされました。
-ecauth_login43.admin.login.passkey.hint: このアカウントで初めてパスキーを使う場合は、パスワードでログインしてから「設定 → EcAuth → パスキー管理」でパスキーを登録してください。
-ecauth_login43.admin.login.passkey.not_supported: お使いのブラウザはパスキー認証に対応していません。
-ecauth_login43.admin.login.passkey.https_required: パスキー認証にはHTTPS接続が必要です。
+ecauth_login40.admin.login.passkey.not_found: パスキーが見つからないか、認証がキャンセルされました。
+ecauth_login40.admin.login.passkey.hint: このアカウントで初めてパスキーを使う場合は、パスワードでログインしてから「設定 → EcAuth → パスキー管理」でパスキーを登録してください。
+ecauth_login40.admin.login.passkey.not_supported: お使いのブラウザはパスキー認証に対応していません。
+ecauth_login40.admin.login.passkey.https_required: パスキー認証にはHTTPS接続が必要です。
 # パスワード認証を無効化しているときにログイン画面へ出す案内。
 # 実際に認証を拒否するのは Security/AdminPasswordLoginListener で、こちらは案内のみ。
-ecauth_login43.admin.login.password_disabled.notice: パスワード認証は無効化されています。パスキーでログインしてください。
-ecauth_login43.admin.login.password_disabled.notice_unavailable: パスワード認証は無効化されていますが、この環境ではパスキーを利用できません。HTTPS でアクセスするか、パスキーに対応したブラウザをご利用ください。
+ecauth_login40.admin.login.password_disabled.notice: パスワード認証は無効化されています。パスキーでログインしてください。
+ecauth_login40.admin.login.password_disabled.notice_unavailable: パスワード認証は無効化されていますが、この環境ではパスキーを利用できません。HTTPS でアクセスするか、パスキーに対応したブラウザをご利用ください。
 
 # コールバック
-ecauth_login43.admin.callback.error: 認証に失敗しました。
-ecauth_login43.admin.callback.state_mismatch: 認証リクエストが不正です。
-ecauth_login43.admin.callback.user_not_found: 対応する管理者アカウントが見つかりません。
+ecauth_login40.admin.callback.error: 認証に失敗しました。
+ecauth_login40.admin.callback.state_mismatch: 認証リクエストが不正です。
+ecauth_login40.admin.callback.user_not_found: 対応する管理者アカウントが見つかりません。

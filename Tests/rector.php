@@ -10,6 +10,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/../Controller',
         __DIR__.'/../Entity',
         __DIR__.'/../Form',
+        __DIR__.'/../Http',
         __DIR__.'/../Repository',
         __DIR__.'/../Security',
         __DIR__.'/../Service',
@@ -22,8 +23,9 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/../vendor',
     ]);
 
-    // PHP 7.4 互換を維持したいので Rector のターゲットも PHP_74 に固定する
-    $rectorConfig->phpVersion(\Rector\ValueObject\PhpVersion::PHP_74);
+    // EC-CUBE 4.0 は PHP 7.1.3 以上をサポートするため、Rector のターゲットも PHP_71 に固定する。
+    // これを上げると、7.1 で動かない構文へのリファクタが提案されてしまう。
+    $rectorConfig->phpVersion(\Rector\ValueObject\PhpVersion::PHP_71);
 
     $rectorConfig->sets([
         SetList::CODE_QUALITY,

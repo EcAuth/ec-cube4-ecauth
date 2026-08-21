@@ -1,13 +1,25 @@
 name: Packaging for EC-CUBE Plugin
 
+# 4.0/4.1 版のリリースはタグ push で行う。例: 4.0-1.1.0
+#
+# main (4.2/4.3 版) は GitHub Release の published をトリガーにしているが、
+# release イベントは **デフォルトブランチのワークフロー定義** で実行されるため、
+# このブランチの deploy.yml は使われない (チェックアウトされるコードは 4.0 側なのに
+# パッケージング手順は 43 版のもの、という食い違いが起きる)。
+# タグ push であれば、そのタグが指すコミットのワークフロー定義が使われるので、
+# 4.0 ブランチの手順で確実に動く。main の release トリガーとも二重発火しない。
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - '4.0-*'
 
 jobs:
   deploy:
     name: Build
     runs-on: ubuntu-latest
+    permissions:
+      # Release の作成とアセットの添付に必要
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -27,6 +39,9 @@ jobs:
 
       - name: Packaging
         working-directory: ../
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           rm -rf "$GITHUB_WORKSPACE/.github"
           # このリポジトリのテストは大文字の Tests/。Linux は case-sensitive なので
@@ -34,6 +49,10 @@ jobs:
           # 将来 tests/ に変わっても取りこぼさないよう両方指定する。
           rm -rf "$GITHUB_WORKSPACE/Tests" "$GITHUB_WORKSPACE/tests"
           rm -rf "$GITHUB_WORKSPACE/node_modules"
+          # docker/ は検証環境の EC-CUBE 本体をいじるスクリプト置き場。
+          # プラグインの動作には不要なうえ、配布物に入れると
+          # 「プラグインが本体の composer.json を書き換える」ように見えてしまう。
+          rm -rf "$GITHUB_WORKSPACE/docker"
           rm -f "$GITHUB_WORKSPACE/Dockerfile"
           rm -f "$GITHUB_WORKSPACE/docker-compose.yml"
           rm -f "$GITHUB_WORKSPACE/docker-compose.override.yml"
@@ -57,9 +76,14 @@ jobs:
           find "$GITHUB_WORKSPACE" -name ".git*" -and ! -name ".gitkeep" -print0 | xargs -0 rm -rf
           chmod -R o+w "$GITHUB_WORKSPACE"
           cd "$GITHUB_WORKSPACE"
-          tar cvzf ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz ./*
+          # アーカイブ対象を ./* にしているのは、EC-CUBE の
+          # PluginService::unpackPluginArchive が PharData を使うため。
+          # tar に "./" エントリ (カレントディレクトリ自身) が含まれると
+          #   PharException: Cannot extract ".", internal error
+          # で展開に失敗する。glob ならこのエントリは作られない。
+          tar cvzf "../${REPO_NAME}-${TAG_NAME}.tar.gz" ./*
 
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v3
         with:
-          files: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+          files: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.ref_name }}.tar.gz

@@ -1,9 +1,9 @@
 {% extends '@admin/default_frame.twig' %}
 
-{% set menus = ['setting', 'ecauth_login43', 'ecauth_login43_passkey'] %}
+{% set menus = ['setting', 'ecauth_login40', 'ecauth_login40_passkey'] %}
 
-{% block title %}{{ 'ecauth_login43.admin.passkey.title'|trans }}{% endblock %}
-{% block sub_title %}{{ 'ecauth_login43.admin.passkey.sub_title'|trans }}{% endblock %}
+{% block title %}{{ 'ecauth_login40.admin.passkey.title'|trans }}{% endblock %}
+{% block sub_title %}{{ 'ecauth_login40.admin.passkey.sub_title'|trans }}{% endblock %}
 
 {% block stylesheet %}
 <style>
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     addBtn.addEventListener('click', function() {
         if (location.protocol !== 'https:' || typeof window.PublicKeyCredential === 'undefined') {
-            alert('{{ "ecauth_login43.admin.login.passkey.not_supported"|trans }}');
+            alert('{{ "ecauth_login40.admin.login.passkey.not_supported"|trans }}');
             return;
         }
         modal.classList.add('show');
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMsg.style.display = 'none';
 
         // 1. パスワード確認 → b2b_subject 取得
-        fetch('{{ url("ecauth_login43_admin_passkey_verify_password") }}', {
+        fetch('{{ url("ecauth_login40_admin_passkey_verify_password") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -118,16 +118,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         })
         .then(function() {
-            alert('{{ "ecauth_login43.admin.passkey.register.success"|trans }}');
+            alert('{{ "ecauth_login40.admin.passkey.register.success"|trans }}');
             window.location.reload();
         })
         .catch(function(error) {
             confirmBtn.disabled = false;
             if (error.message === 'verify_password_failed') {
-                errorMsg.textContent = '{{ "ecauth_login43.admin.passkey.verify_password.error"|trans }}';
+                errorMsg.textContent = '{{ "ecauth_login40.admin.passkey.verify_password.error"|trans }}';
                 errorMsg.style.display = 'block';
             } else if (error.name !== 'NotAllowedError') {
-                alert('{{ "ecauth_login43.admin.passkey.register.error"|trans }}');
+                alert('{{ "ecauth_login40.admin.passkey.register.error"|trans }}');
             }
         });
     }
@@ -141,23 +141,23 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="c-primaryCol">
                 <div class="card rounded border-0 mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span>{{ 'ecauth_login43.admin.passkey.header'|trans }}</span>
+                        <span>{{ 'ecauth_login40.admin.passkey.header'|trans }}</span>
                         <button type="button" id="ecauth-passkey-add" class="btn btn-ec-regular">
-                            <i class="fa fa-plus mr-1"></i>{{ 'ecauth_login43.admin.passkey.add'|trans }}
+                            <i class="fa fa-plus mr-1"></i>{{ 'ecauth_login40.admin.passkey.add'|trans }}
                         </button>
                     </div>
                     <div class="card-body">
                         {% if error %}
                             <div class="alert alert-warning">{{ error|trans }}</div>
                         {% elseif passkeys is empty %}
-                            <p class="text-muted">{{ 'ecauth_login43.admin.passkey.empty'|trans }}</p>
+                            <p class="text-muted">{{ 'ecauth_login40.admin.passkey.empty'|trans }}</p>
                         {% else %}
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>{{ 'ecauth_login43.admin.passkey.device_name'|trans }}</th>
-                                        <th>{{ 'ecauth_login43.admin.passkey.created_at'|trans }}</th>
-                                        <th>{{ 'ecauth_login43.admin.passkey.last_used_at'|trans }}</th>
+                                        <th>{{ 'ecauth_login40.admin.passkey.device_name'|trans }}</th>
+                                        <th>{{ 'ecauth_login40.admin.passkey.created_at'|trans }}</th>
+                                        <th>{{ 'ecauth_login40.admin.passkey.last_used_at'|trans }}</th>
                                         <th class="text-right"></th>
                                     </tr>
                                 </thead>
@@ -168,17 +168,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                             <td>
                                                 {{ passkey.device_name|default('-') }}
                                                 {% if is_current %}
-                                                    <span class="badge bg-primary ms-1">{{ 'ecauth_login43.admin.passkey.current'|trans }}</span>
+                                                    <span class="badge badge-primary ml-1">{{ 'ecauth_login40.admin.passkey.current'|trans }}</span>
                                                 {% endif %}
                                             </td>
                                             <td>{{ passkey.created_at ? passkey.created_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
                                             <td>{{ passkey.last_used_at ? passkey.last_used_at|date('Y/m/d H:i:s', eccube_timezone) : '-' }}</td>
                                             <td class="text-right">
-                                                <form method="post" action="{{ url('ecauth_login43_admin_passkey_delete', { credentialId: passkey.credential_id }) }}" style="display:inline">
+                                                <form method="post" action="{{ url('ecauth_login40_admin_passkey_delete', { credentialId: passkey.credential_id }) }}" style="display:inline">
                                                     <input type="hidden" name="_method" value="DELETE">
                                                     <input type="hidden" name="_token" value="{{ csrf_token('_token') }}">
                                                     <button type="submit" class="btn btn-ec-actionIcon"
-                                                            onclick="return confirm('{{ 'ecauth_login43.admin.passkey.delete.confirm'|trans }}')">
+                                                            onclick="return confirm('{{ 'ecauth_login40.admin.passkey.delete.confirm'|trans }}')">
                                                         <i class="fa fa-close fa-lg text-secondary"></i>
                                                     </button>
                                                 </form>
@@ -197,13 +197,13 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- パスワード確認モーダル -->
     <div id="ecauth-password-modal">
         <div class="modal-content">
-            <h5 class="mb-3">{{ 'ecauth_login43.admin.passkey.verify_password'|trans }}</h5>
-            <p class="text-muted mb-3">{{ 'ecauth_login43.admin.passkey.verify_password.label'|trans }}</p>
+            <h5 class="mb-3">{{ 'ecauth_login40.admin.passkey.verify_password'|trans }}</h5>
+            <p class="text-muted mb-3">{{ 'ecauth_login40.admin.passkey.verify_password.label'|trans }}</p>
             <input type="password" id="ecauth-password-input" class="form-control mb-2" autocomplete="current-password">
             <div id="ecauth-password-error" class="modal-error"></div>
             <div class="d-flex justify-content-end mt-3">
-                <button type="button" id="ecauth-password-cancel" class="btn btn-ec-sub mr-2">{{ 'ecauth_login43.admin.passkey.verify_password.cancel'|trans }}</button>
-                <button type="button" id="ecauth-password-confirm" class="btn btn-ec-conversion">{{ 'ecauth_login43.admin.passkey.verify_password.submit'|trans }}</button>
+                <button type="button" id="ecauth-password-cancel" class="btn btn-ec-sub mr-2">{{ 'ecauth_login40.admin.passkey.verify_password.cancel'|trans }}</button>
+                <button type="button" id="ecauth-password-confirm" class="btn btn-ec-conversion">{{ 'ecauth_login40.admin.passkey.verify_password.submit'|trans }}</button>
             </div>
         </div>
     </div>

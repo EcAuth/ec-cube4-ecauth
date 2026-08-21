@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Repository;
+namespace Plugin\EcAuthLogin40\Repository;
 
-use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Common\Persistence\ManagerRegistry;
 use Eccube\Repository\AbstractRepository;
-use Plugin\EcAuthLogin43\Entity\Config;
+use Plugin\EcAuthLogin40\Entity\Config;
 
 class ConfigRepository extends AbstractRepository
 {

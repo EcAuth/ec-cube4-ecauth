@@ -1,9 +1,9 @@
 <?php
 
-namespace Plugin\EcAuthLogin43\Tests\Unit;
+namespace Plugin\EcAuthLogin40\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Plugin\EcAuthLogin43\Service\TenantChangePolicy;
+use Plugin\EcAuthLogin40\Service\TenantChangePolicy;
 
 /**
  * EcAuth/ec-cube4-ecauth#52: 接続先テナント（client_id）を差し替えたのに
@@ -85,7 +85,7 @@ class TenantChangePolicyTest extends TestCase
         self::assertFalse($this->policy->shouldDiscardBaseUrlInput(
             false,
             'https://old.ec-auth.io',
-            'https://old.ec-auth.io',
+            'https://old.ec-auth.io'
         ));
     }
 
@@ -95,13 +95,13 @@ class TenantChangePolicyTest extends TestCase
         self::assertTrue($this->policy->shouldDiscardBaseUrlInput(
             true,
             'https://old.ec-auth.io',
-            'https://old.ec-auth.io',
+            'https://old.ec-auth.io'
         ));
         // 前後の空白差は「触った」うちに入らない。
         self::assertTrue($this->policy->shouldDiscardBaseUrlInput(
             true,
             ' https://old.ec-auth.io ',
-            'https://old.ec-auth.io',
+            'https://old.ec-auth.io'
         ));
     }
 
@@ -112,7 +112,7 @@ class TenantChangePolicyTest extends TestCase
         self::assertFalse($this->policy->shouldDiscardBaseUrlInput(
             true,
             'https://new.ec-auth.io',
-            'https://old.ec-auth.io',
+            'https://old.ec-auth.io'
         ));
     }
 
