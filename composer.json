@@ -6,7 +6,7 @@
   "license": "LGPL-2.1-or-later",
   "extra": {
     "code": "EcAuthLogin40",
-    "id": 0
+    "id": 3581
   },
   "require": {
     "ec-cube/plugin-installer": "~0.0.6 || ^2.0"
