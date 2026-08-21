@@ -43,7 +43,7 @@ ecauth_login43.admin.config.password_login.header: 管理画面のパスワー�
 ecauth_login43.admin.config.password_login.status: 現在の状態
 ecauth_login43.admin.config.password_login.status.enabled: 有効（ID とパスワードでログインできます）
 ecauth_login43.admin.config.password_login.status.disabled: 無効（パスキーでのみログインできます）
-ecauth_login43.admin.config.password_login.description: 管理画面のパスワード認証を無効にすると、不正に作られた管理者アカウントでログインされることを防げます。切り替えは環境変数 %env% で行い、管理画面からは変更できません。管理画面を乗っ取られてもパスワード認証を戻せないようにするためです。
+ecauth_login43.admin.config.password_login.description: 管理画面のパスワード認証を無効にすると、不正に作られた管理者アカウントでログインされることを防げます。切り替えは環境変数 %env% で行い、管理画面からは変更できません。設定画面から切り替えられるようにすると、この画面に入れた時点で無効化を解除できてしまうためです。
 ecauth_login43.admin.config.password_login.how_to.disable: '無効にする: EC-CUBE の .env に %env%=1 を追記します（Web サーバーやコンテナの環境変数として設定しても構いません）。'
 ecauth_login43.admin.config.password_login.how_to.enable: '有効に戻す: %env% を 0 にするか、設定ごと削除します。'
 ecauth_login43.admin.config.password_login.caution.before_disable: 無効にする前に、少なくとも 1 人の管理者がパスキーを登録済みであることを必ず確認してください。誰も登録していない状態で無効にすると、管理画面にログインできなくなります。
