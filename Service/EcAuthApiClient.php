@@ -102,8 +102,11 @@ class EcAuthApiClient
 
     /**
      * パスキー登録オプションを取得する。
+     *
+     * @param string $externalId 発行元における不変キー（B2BExternalId::forMember）。EcAuth はハッシュ化して保持する
+     * @param string|null $userName WebAuthn の user.name（認証器に表示されるアカウント名）。省略時は EcAuth が external_id を使う
      */
-    public function registerOptions(string $rpId, string $b2bSubject, string $externalId, ?string $displayName = null, ?string $deviceName = null): array
+    public function registerOptions(string $rpId, string $b2bSubject, string $externalId, ?string $displayName = null, ?string $deviceName = null, ?string $userName = null): array
     {
         $body = [
             'client_id' => $this->getClientId(),
@@ -111,6 +114,9 @@ class EcAuthApiClient
             'b2b_subject' => $b2bSubject,
             'external_id' => $externalId,
         ];
+        if ($userName !== null) {
+            $body['user_name'] = $userName;
+        }
         if ($displayName !== null) {
             $body['display_name'] = $displayName;
         }
