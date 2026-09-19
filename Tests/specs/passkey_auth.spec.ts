@@ -313,11 +313,28 @@ test.describe.serial('E2E: パスキー登録からログイン完了までの�
     // register/verify が 200 で返るまで待つ。パスキー一覧自体は session の access_token が
     // 無いと取得できず（パスキーログイン成功後に初めて token が入る）、登録直後の一覧は
     // 常に空表示になるため、ここではサーバー側の登録完了だけを検証する。
+    const optionsPromise = page.waitForResponse(
+      (res) => res.url().includes('/ecauth/passkey/register/options') && res.request().method() === 'POST',
+      { timeout: 30000 },
+    );
     const verifyPromise = page.waitForResponse(
       (res) => res.url().includes('/ecauth/passkey/register/verify') && res.request().method() === 'POST',
       { timeout: 30000 },
     );
     await page.click('#ecauth-password-confirm');
+
+    // EcAuthDocs#110: external_id は member_id 由来の不変キーになったが、認証器に表示される
+    // アカウント名（WebAuthn user.name）は引き続き login_id であること。
+    // user.name は EcAuth が user_name → external_id、user.displayName は display_name →
+    // user_name → external_id の順で決める（EcAuth#544）。プラグインは display_name を送らないので
+    // displayName も login_id になる。EcAuth 側に #544 が入っていないと、どちらも
+    // external_id（member:{member_id}）がそのまま表示されてしまう。
+    const optionsRes = await optionsPromise;
+    expect(optionsRes.status()).toBe(200);
+    const optionsBody = await optionsRes.json();
+    expect(optionsBody.user.name).toBe(LOGIN_ID);
+    expect(optionsBody.user.displayName).toBe(LOGIN_ID);
+
     const verifyRes = await verifyPromise;
     expect(verifyRes.status()).toBe(200);
     const verifyBody = await verifyRes.json();

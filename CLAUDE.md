@@ -50,7 +50,7 @@ op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --
 
 # バージョンを固定する場合（非秘密なのでインラインで渡す）
 # 値は検証したいバージョンに読み替える。省略すると最新が入る
-ECAUTH_PLUGIN_VERSION=1.1.0 \
+ECAUTH_PLUGIN_VERSION=1.1.1 \
   op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
 ```
 
@@ -131,6 +131,7 @@ ec-cube4-ecauth/
 │   └── AdminPasswordLoginListener.php # 管理画面のパスワード認証を拒否する
 ├── Service/
 │   ├── AdminPasswordLoginPolicy.php # パスワード認証を無効化するかの判定
+│   ├── B2BExternalId.php            # register/options に渡す external_id（member:{member_id}）
 │   ├── EcAuthApiClient.php          # EcAuth API HTTP クライアント
 │   └── PasskeyAuthService.php       # パスキー認証ビジネスロジック
 ├── Resource/
@@ -238,6 +239,25 @@ EcAuth 側であり、テナントが変われば別の値が降ってきて衝�
 判定条件（初回登録・同値・空白差ではクリアしない等）は EC-CUBE 非依存の
 `Service/TenantChangePolicy` に切り出してある。`phpunit.xml.dist` は EC-CUBE のカーネルを
 起動しないため、コントローラやサービスに直接書くとユニットテストで固定できない。
+
+### external_id は `member:{member_id}`、表示名は `user_name`（EcAuthDocs#110）
+
+`register/options` に渡す `external_id` は、EcAuth が発行元（`client_id`）ごとにハッシュ化して
+保持し「同じ値なら同じ管理者」と解決するキー。**1.1.0 以前のリリースは `login_id` を送っていた**が、
+管理画面から変更できる値なので恒久キーにならず、`Service/B2BExternalId` が組み立てる
+`member:{dtb_member.member_id}` に変えた（EcAuthDocs#110 リリース 7）。接頭辞は、旧バージョンが送った数字のみの `login_id`
+のハッシュと衝突させないためのもの（形式の根拠はクラスの docblock）。2 系 / 4.0 系プラグインも
+同じ形式で、**変えると既存の identity と一致しなくなる**。`Tests/Unit/B2BExternalIdTest.php` で固定。
+
+認証器・パスキー管理画面に表示されるアカウント名（WebAuthn `user.name`）は EcAuth が
+`external_id` から作っていたため、`member:1` が表示されないよう `user_name` に `login_id` を
+別途渡す（EcAuth#544 で追加された任意項目）。`Tests/specs/passkey_auth.spec.ts` の
+「パスキーを新規登録する」が `options.user.name === login_id` を検証している。
+
+移行の挙動: 旧 `hash(login_id)` の identity は EcAuth 側に残り、更新後に管理者が次にパスキーを
+追加した時点で `hash(member:{member_id})` の identity が**追加**される（同一 subject の下に共存）。
+それまでの間に `ecauth_subject` を失う操作（再インストール・`client_id` 変更）をすると、
+`external_id` によるフォールバックが効かず新しい B2BUser が作られ、旧パスキーは再登録になる。
 
 ### フォームは「管理対象エンティティ」に直接バインドされる
 
