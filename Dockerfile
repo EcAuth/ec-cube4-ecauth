@@ -25,6 +25,17 @@ ARG COMPOSER_VERSION=
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html
 
+# 本家からの変更: apt の参照先を archive.debian.org に切り替える。
+# bullseye は 2026-08-31 に LTS を終えた。deb.debian.org の bullseye-security は索引だけ残して
+# パッケージ本体が消えており（pool 配下が 404）、apt-get upgrade がそこで落ちる。
+# archive.debian.org には bullseye / bullseye-updates は移されているが bullseye-security は
+# まだ無い（2026-09-19 時点）。検証専用のイメージなので security 行は外し、残りを archive に向ける。
+# 本体の bullseye が deb.debian.org から消えても壊れないよう、main / updates も先に archive にしておく。
+RUN sed -i \
+    -e '/debian-security/d' \
+    -e 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' \
+    /etc/apt/sources.list
+
 # 本家からの変更: nodejs のインストールを削除した。
 # 本家は deb.nodesource.com/setup_12.x を叩くが、この配布経路は既に廃止されており
 # ビルドが失敗する。フロントのアセットは配布パッケージにビルド済みで含まれるため
