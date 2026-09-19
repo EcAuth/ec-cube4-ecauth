@@ -84,13 +84,36 @@ PharException: Extraction from phar "..." failed: Cannot extract ".", internal e
 も `.github/workflows/deploy.yml` も glob（`*` / `./*`）でエントリを列挙している。
 配布物のパッケージングを書き換えるときはここを壊さないこと。
 
-#### オーナーズストア（package-api）経由の検証は自動化していない
+#### オーナーズストア（package-api）経由の検証は 4.1 系のみ
 
-4.2/4.3 版には `ECCUBE_AUTHENTICATION_KEY` を設定すると package-api から
-「申請中のパッケージ」を入れる経路があるが、40 版では用意していない。4.0 系は
-Composer v1 のメタデータ提供が終了しており、`eccube:composer:require` 経由の
-インストールがそもそも安定しないため（EC-CUBE 公式もコマンドラインでの操作を推奨）。
-検証が必要なときは管理画面から手で tar.gz をアップロードする。
+`ECCUBE_AUTHENTICATION_KEY` を設定すると、`/plugin` のワーキングツリーではなく
+package-api からプラグインを取得する。オーナーズストアに申請すると検証キー
+（X-ECCUBE-KEY）が発行されるので、公開前後のパッケージを実際の配布経路どおりに
+検証できる。
+
+```bash
+ECCUBE_VERSION=4.1.2-p5 ECAUTH_PLUGIN_VERSION=1.1.1 \
+  op run --env-file=.env.tpl --env-file=.env.verify.tpl -- \
+  docker compose up -d --build
+```
+
+**この経路は 4.1 系でのみ成立する。** 4.0 系は Composer v1 で packagist のメタデータ
+提供が終了しているため `eccube:composer:require` が通らない。4.0 系の検証は従来どおり
+tar.gz を `eccube:plugin:install --path=` で入れる（entrypoint の既定動作）。
+
+この経路は `PluginService::installWithCode()` を通るため、`--path=` 経路とは違って
+`extra.id`（= `source`）が効く。非 0 なら `getPluginRequired()` →
+`ComposerService::foreachRequires()` に入って composer のリポジトリメタデータを引く
+（`extra.id` の項を参照）。**つまり配布経路として本番に最も近いのはこちら**であり、
+`--path=` 経路が通ることは package-api 経由が通ることを保証しない。
+
+検証キーは 1Password の `eccube4-ecauth-plugin` にある。フィールド名に注意すること。
+43 版のキーは `eccube_authentication_key`、40 版は `4.0`（別パッケージとして申請した
+ため別のキーが発行される）。
+
+package-api から入れた状態でコンテナを restart しても、entrypoint はワーキングツリーの
+ソースで上書きしない（上書きすると「配布物を検証した」と言えなくなるため）。ローカル
+ソースの検証に戻すときは `.env.verify.tpl` を外して `docker compose down -v` する。
 
 ### 静的解析
 

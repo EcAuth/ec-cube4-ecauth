@@ -86,6 +86,50 @@ make_plugin_archive() {
     )
 }
 
+# オーナーズストアの検証キー (X-ECCUBE-KEY) を dtb_base_info に書き込む。
+#
+# package-api と通信する経路でのみ必要。EC-CUBE は認証キーを DB
+# (dtb_base_info.authentication_key) から読むため、環境変数を渡すだけでは効かない。
+# 管理画面から手で入れる代わりに、ここで一度だけ設定する。
+#
+# 値はログに出さない (検証キーは秘密情報)。
+set_authentication_key() {
+    php <<'PHP'
+<?php
+// DATABASE_URL 例: postgresql://eccube:password@postgres:5432/eccube_db
+$url = parse_url((string) (isset($_SERVER['DATABASE_URL']) ? $_SERVER['DATABASE_URL'] : ''));
+$key = (string) (isset($_SERVER['ECCUBE_AUTHENTICATION_KEY']) ? $_SERVER['ECCUBE_AUTHENTICATION_KEY'] : '');
+
+if (!is_array($url) || !isset($url['host'], $url['path']) || $key === '') {
+    fwrite(STDERR, "authentication_key を設定できません (DATABASE_URL または ECCUBE_AUTHENTICATION_KEY が不正です)\n");
+    exit(1);
+}
+
+// 43 版は str_starts_with() を使っているが、このコンテナの PHP は 7.4 なので使えない。
+$scheme = isset($url['scheme']) ? (string) $url['scheme'] : 'postgresql';
+$driver = strpos($scheme, 'mysql') === 0 ? 'mysql' : 'pgsql';
+$dsn = sprintf(
+    '%s:host=%s;port=%d;dbname=%s',
+    $driver,
+    $url['host'],
+    isset($url['port']) ? $url['port'] : ($driver === 'mysql' ? 3306 : 5432),
+    ltrim($url['path'], '/')
+);
+
+$pdo = new PDO(
+    $dsn,
+    rawurldecode((string) (isset($url['user']) ? $url['user'] : '')),
+    rawurldecode((string) (isset($url['pass']) ? $url['pass'] : '')),
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+// dtb_base_info は単一行運用。値はプレースホルダで渡し SQL 文字列に埋め込まない。
+$pdo->prepare('UPDATE dtb_base_info SET authentication_key = ?')->execute([$key]);
+
+fwrite(STDOUT, "authentication_key を設定しました (値は出力しません)\n");
+PHP
+}
+
 # 導入済み判定はファイルの有無で行う。
 #
 # 4.2/4.3 版は composer show で見ていたが、CLI 経由 (eccube:plugin:install --path=) で
@@ -95,15 +139,45 @@ make_plugin_archive() {
 # コンテナだけ作り直すと「DB にはプラグインが居るのにファイルが無い」状態になる。
 # その場合 eccube:plugin:install は checkSamePlugin で落ちる。復旧は docker compose down -v。
 if [ -f "${PLUGIN_DIR}/composer.json" ]; then
-    echo "${PLUGIN_CODE} plugin already installed; syncing source from ${PLUGIN_SRC}"
-    # 開発中にソースを直したら docker compose restart ec-cube で反映できるようにする。
-    # 4.0/4.1 はプラグインをアーカイブから app/Plugin へ展開する方式なので、
-    # 4.2/4.3 版のように /plugin をそのまま参照してはくれない。
+    if [ -n "${ECCUBE_AUTHENTICATION_KEY:-}" ]; then
+        # package-api から入れた配布物を検証している最中なので、ワーキングツリーで
+        # 上書きしてはいけない。上書きすると「配布物を検証した」と言えなくなる。
+        echo "${PLUGIN_CODE} plugin already installed (package-api); ソースの同期はしない"
+    else
+        echo "${PLUGIN_CODE} plugin already installed; syncing source from ${PLUGIN_SRC}"
+        # 開発中にソースを直したら docker compose restart ec-cube で反映できるようにする。
+        # 4.0/4.1 はプラグインをアーカイブから app/Plugin へ展開する方式なので、
+        # 4.2/4.3 版のように /plugin をそのまま参照してはくれない。
+        #
+        # 上書きのみでファイルの削除は反映されない。消したファイルを反映したいときや
+        # composer.json / Entity を変更したときは docker compose down -v で作り直すこと。
+        make_plugin_archive
+        tar xzf "${PLUGIN_ARCHIVE}" -C "${PLUGIN_DIR}"
+    fi
+elif [ -n "${ECCUBE_AUTHENTICATION_KEY:-}" ]; then
+    # オーナーズストア (package-api) 経由。公開前・公開後のパッケージを実際の
+    # 配布経路どおりに検証したいときに使う。
     #
-    # 上書きのみでファイルの削除は反映されない。消したファイルを反映したいときや
-    # composer.json / Entity を変更したときは docker compose down -v で作り直すこと。
-    make_plugin_archive
-    tar xzf "${PLUGIN_ARCHIVE}" -C "${PLUGIN_DIR}"
+    # この経路は PluginService::installWithCode() を通り、composer.json の
+    # extra.id (= source) が非 0 なので getPluginRequired() →
+    # ComposerService::foreachRequires() に入る。つまり composer のリポジトリ
+    # メタデータを引く。**4.1 系専用**と考えること。4.0 系は Composer v1 で
+    # packagist のメタデータ提供が終了しており、この経路は成立しない
+    # (詳細は .env.verify.tpl と CLAUDE.md)。
+    echo "Installing ${PLUGIN_CODE} from package-api (version: ${ECAUTH_PLUGIN_VERSION:-latest})..."
+    set_authentication_key
+    if [ -n "${ECAUTH_PLUGIN_VERSION:-}" ]; then
+        bin/console eccube:composer:require ec-cube/ecauthlogin40 "${ECAUTH_PLUGIN_VERSION}"
+    else
+        bin/console eccube:composer:require ec-cube/ecauthlogin40
+    fi
+    bin/console eccube:plugin:enable --code="${PLUGIN_CODE}" || {
+        echo "プラグインの有効化に失敗しました。" >&2
+        echo "package-api からの取得自体は成功しているので、app/Plugin/${PLUGIN_CODE} の" >&2
+        echo "中身と dtb_plugin の状態を確認してください。" >&2
+        exit 1
+    }
+    echo "${PLUGIN_CODE} plugin installed from package-api and enabled."
 else
     echo "Installing ${PLUGIN_CODE} from ${PLUGIN_SRC} (local source)..."
     make_plugin_archive

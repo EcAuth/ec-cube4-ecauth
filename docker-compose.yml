@@ -41,6 +41,13 @@ services:
       # 無効化すると、管理者はパスキーでしかログインできなくなる。パスキーを
       # 紛失したときはこの値を外して起動し直せばパスワードでログインできる。
       ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN: ${ECAUTH_DISABLE_ADMIN_PASSWORD_LOGIN:-}
+      # オーナーズストアの検証キー (X-ECCUBE-KEY)。設定すると /plugin ではなく
+      # package-api からプラグインを取得する。値は 1Password から渡す:
+      #   op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+      # この経路は 4.1 系でのみ成立する (4.0 系は Composer v1。.env.verify.tpl 参照)。
+      ECCUBE_AUTHENTICATION_KEY: ${ECCUBE_AUTHENTICATION_KEY:-}
+      # package-api から入れるプラグインのバージョン (空なら最新)。非秘密なのでそのまま渡す。
+      ECAUTH_PLUGIN_VERSION: ${ECAUTH_PLUGIN_VERSION:-}
     depends_on:
       postgres:
         condition: service_healthy
