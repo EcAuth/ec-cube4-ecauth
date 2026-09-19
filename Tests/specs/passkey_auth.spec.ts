@@ -324,8 +324,11 @@ test.describe.serial('E2E: パスキー登録からログイン完了までの�
     await page.click('#ecauth-password-confirm');
 
     // EcAuthDocs#110: external_id は member_id 由来の不変キーになったが、認証器に表示される
-    // アカウント名（WebAuthn user.name）は引き続き login_id であること。EcAuth 側で
-    // user_name（EcAuth#544）が反映されていないと external_id がそのまま表示されてしまう。
+    // アカウント名（WebAuthn user.name）は引き続き login_id であること。
+    // user.name は EcAuth が user_name → external_id、user.displayName は display_name →
+    // user_name → external_id の順で決める（EcAuth#544）。プラグインは display_name を送らないので
+    // displayName も login_id になる。EcAuth 側に #544 が入っていないと、どちらも
+    // external_id（member:{member_id}）がそのまま表示されてしまう。
     const optionsRes = await optionsPromise;
     expect(optionsRes.status()).toBe(200);
     const optionsBody = await optionsRes.json();
