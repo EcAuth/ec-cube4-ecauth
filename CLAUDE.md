@@ -243,9 +243,9 @@ EcAuth 側であり、テナントが変われば別の値が降ってきて衝�
 ### external_id は `member:{member_id}`、表示名は `user_name`（EcAuthDocs#110）
 
 `register/options` に渡す `external_id` は、EcAuth が発行元（`client_id`）ごとにハッシュ化して
-保持し「同じ値なら同じ管理者」と解決するキー。**1.1.0 までは `login_id` を送っていた**が、
-管理画面から変更できる値なので恒久キーにならず、1.1.1 から `Service/B2BExternalId` が組み立てる
-`member:{dtb_member.member_id}` に変えた。接頭辞は、旧バージョンが送った数字のみの `login_id`
+保持し「同じ値なら同じ管理者」と解決するキー。**1.1.0 以前のリリースは `login_id` を送っていた**が、
+管理画面から変更できる値なので恒久キーにならず、`Service/B2BExternalId` が組み立てる
+`member:{dtb_member.member_id}` に変えた（EcAuthDocs#110 リリース 7）。接頭辞は、旧バージョンが送った数字のみの `login_id`
 のハッシュと衝突させないためのもの（形式の根拠はクラスの docblock）。2 系 / 4.0 系プラグインも
 同じ形式で、**変えると既存の identity と一致しなくなる**。`Tests/Unit/B2BExternalIdTest.php` で固定。
 

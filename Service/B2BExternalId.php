@@ -9,7 +9,7 @@ namespace Plugin\EcAuthLogin43\Service;
  * ハッシュ化して保持し、同じ値が来れば同じ管理者として解決する。呼び出し側に要求されるのは
  * 不変性・一意性・再利用禁止の 3 点（EcAuthDocs#110）。
  *
- * 1.1.0 までは dtb_member.login_id を送っていたが、login_id は管理画面から変更できるため
+ * 1.1.0 以前のリリースでは dtb_member.login_id を送っていたが、login_id は管理画面から変更できるため
  * 恒久的なキーにならない（変更すると EcAuth 側では別人になり、プラグイン再インストール時に
  * 既存の B2BUser へ戻る復旧経路が壊れる）。dtb_member.member_id は採番後に変わらず
  * 再利用もされないので、こちらを使う。
