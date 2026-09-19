@@ -3,6 +3,7 @@
 namespace Plugin\EcAuthLogin40\Controller;
 
 use Eccube\Controller\AbstractController;
+use Plugin\EcAuthLogin40\Service\B2BExternalId;
 use Plugin\EcAuthLogin40\Service\EcAuthApiClient;
 use Plugin\EcAuthLogin40\Service\PasskeyAuthService;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -154,9 +155,13 @@ class PasskeyAuthController extends AbstractController
 
         /** @var \Eccube\Entity\Member $Member */
         $Member = $this->getUser();
-        $externalId = $Member->getLoginId();
+        // EcAuthDocs#110: external_id は発行元における不変キー（member_id 由来）。管理画面から
+        // 変更できる login_id は使わない。人が読むアカウント名（認証器に表示される）は
+        // user_name として別に渡す。形式の根拠は B2BExternalId を参照。
+        $externalId = B2BExternalId::forMember((int) $Member->getId());
+        $userName = $Member->getLoginId();
 
-        $result = $this->apiClient->registerOptions($rpId, $b2bSubject, $externalId, $displayName, $deviceName);
+        $result = $this->apiClient->registerOptions($rpId, $b2bSubject, $externalId, $displayName, $deviceName, $userName);
 
         if ($result['status'] !== 200) {
             return $this->json(['error' => 'Failed to get registration options'], $result['status']);
