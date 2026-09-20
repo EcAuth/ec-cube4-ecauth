@@ -42,17 +42,22 @@ package-api リポジトリから exclude する**（`ComposerApiService::init()
 どちらか一方になる。
 
 ```bash
-# 既定（ローカルソース）
-op run --env-file=.env.tpl -- docker compose up -d --build
+# 既定（ローカルソース）。compose が消費する秘密は無いので op run は不要
+docker compose up -d --build
 
 # 検証キーで package-api から「申請中のパッケージ」を入れる
-op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+op run --env-file=.env.verify.tpl -- docker compose up -d --build
 
 # バージョンを固定する場合（非秘密なのでインラインで渡す）
 # 値は検証したいバージョンに読み替える。省略すると最新が入る
 ECAUTH_PLUGIN_VERSION=1.1.1 \
-  op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+  op run --env-file=.env.verify.tpl -- docker compose up -d --build
 ```
+
+`.env.tpl`（`CLIENT_ID` / `CLIENT_SECRET` / `WEB_APP_SUFFIX`）は compose ではなく
+E2E の Playwright プロセスが読む値なので、compose の起動には要らない。staging の EcAuth を
+設定に保存する E2E を回す場合だけ、後述の「E2E テスト」のとおり `ECAUTH_ALLOWED_HOSTS` を
+合成して起動する。
 
 検証キー（`X-ECCUBE-KEY`）はオーナーズストアにリリース申請すると発行される。
 `ComposerApiService` は package-api へのリクエストに
@@ -105,6 +110,28 @@ CI では静的解析ジョブと E2E ジョブが別コンテナのため、こ
 pnpm install
 pnpm exec playwright test
 ```
+
+パスキー登録〜ログインの spec（`Tests/specs/passkey_auth.spec.ts`）は staging の EcAuth に
+繋ぐため、`ECAUTH_BASE_URL` / `CLIENT_ID` / `CLIENT_SECRET` が要る（未設定ならスキップされる）。
+CI と同じ 1Password の `ecauth-staging-app` から取得する。staging のホスト名は
+`web_app_suffix` から合成するが、`op run --env-file` は変数展開より先にシークレット置換を
+行うためテンプレート内では合成できない。`bash -c` のサブシェルで合成する。
+
+```bash
+# 1. staging の EcAuth を設定に保存できるよう、許可ホストを合成して起動する
+op run --env-file=.env.tpl -- bash -c '
+  ECAUTH_ALLOWED_HOSTS=".ec-auth.io,ecauth-staging-${WEB_APP_SUFFIX}.azurewebsites.net" \
+  docker compose up -d --build'
+
+# 2. E2E を実行する
+op run --env-file=.env.tpl -- bash -c '
+  ECAUTH_BASE_URL="https://ecauth-staging-${WEB_APP_SUFFIX}.azurewebsites.net" \
+  BASE_URL=https://localhost:8081 \
+  pnpm exec playwright test'
+```
+
+`ECAUTH_ALLOWED_HOSTS` に `.azurewebsites.net` のようなサフィックスを指定してはいけない
+（EcAuthDocs #101）。「完全なホスト名」を足す。
 
 ## ディレクトリ構成
 

@@ -20,7 +20,7 @@ services:
       # 設定すると docker-entrypoint.sh が package-api から「申請中のパッケージ」を
       # インストールする。未設定なら従来どおり /plugin のローカルソースから入れる。
       # 値は 1Password から渡す:
-      #   op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+      #   op run --env-file=.env.verify.tpl -- docker compose up -d --build
       ECCUBE_AUTHENTICATION_KEY: ${ECCUBE_AUTHENTICATION_KEY:-}
       # package-api から入れるプラグインのバージョン（空なら最新）。非秘密なのでそのまま渡す。
       ECAUTH_PLUGIN_VERSION: ${ECAUTH_PLUGIN_VERSION:-}

@@ -5,12 +5,12 @@
 # 「申請中のパッケージ」を取得できるため、公開前のパッケージを本番と同じ配布経路で
 # E2E 検証できる。
 #
-# 使用方法（.env.tpl と併用する）:
-#   op run --env-file=.env.tpl --env-file=.env.verify.tpl -- docker compose up -d --build
+# 使用方法:
+#   op run --env-file=.env.verify.tpl -- docker compose up -d --build
 #
 # バージョンを固定したい場合は非秘密なのでインラインで渡す（値は検証したい
 # バージョンに読み替える。省略すると最新が入る）:
-#   ECAUTH_PLUGIN_VERSION=1.0.2 op run --env-file=.env.tpl --env-file=.env.verify.tpl -- \
+#   ECAUTH_PLUGIN_VERSION=1.0.2 op run --env-file=.env.verify.tpl -- \
 #     docker compose up -d --build
 #
 # このファイルを読み込まなければ従来どおり /plugin のローカルソースからインストールされる。
